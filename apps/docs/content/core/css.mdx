@@ -1,0 +1,420 @@
+# CSS Utilities
+
+Generate CSS custom properties from theme values for easy styling.
+
+## Why CSS Variables?
+
+**Problem:** Your theme data is a JavaScript object, but your styles need values. How do you connect them?
+
+**Solution:** Convert theme data to CSS custom properties (variables). Then use those variables in Tailwind, CSS, or any styling approach.
+
+```
+Theme Object → CSS Variables → Styles
+{ colors: { primary: '#14B8A6' } } → --colors-primary: #14B8A6 → bg-primary
+```
+
+## Which Function Should I Use?
+
+| Function | Use when... |
+|----------|-------------|
+| `toCssVariables()` | You need variables as a JavaScript object (inline styles, custom injection) |
+| `toCssString()` | You need a CSS string for a single theme |
+| `toCssStringAll()` | You need CSS for multiple static themes (light/dark mode) |
+| `cssVar()` | You need a single `var(--path)` reference |
+| `createCssVarHelper()` | You want a typed helper for `var()` references in components |
+
+## When to Use CSS Utilities Directly
+
+| Scenario | Recommendation |
+|----------|----------------|
+| Using DynamicThemeProvider | **Don't** — the provider handles CSS injection automatically |
+| Server-side CSS injection | **Use `toCssString()`** — generate CSS in your layout |
+| Building a style object | **Use `toCssVariables()`** — get key-value pairs |
+| Referencing vars in CSS-in-JS | **Use `createCssVarHelper()`** — type-safe var() references |
+| Custom rendering (canvas, SVG) | **Use hooks instead** — `useThemeValue()` gives actual values |
+
+> **Tip:** Most users don't need these directly. `DynamicThemeProvider` and `getLiveryData()` handle CSS generation for you.
+
+## Generating CSS Variables
+
+### toCssVariables
+
+Convert a theme to a CSS variables object:
+
+```typescript
+import { createSchema, t, toCssVariables, type InferTheme } from '@livery/core';
+
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      background: t.color(),
+    },
+    spacing: {
+      md: t.dimension(),
+    },
+  },
+});
+
+type Theme = InferTheme<typeof schema.definition>;
+
+const theme: Theme = {
+  colors: {
+    primary: '#14B8A6',
+    background: '#FFFFFF',
+  },
+  spacing: {
+    md: '16px',
+  },
+};
+
+const cssVars = toCssVariables({ schema, theme });
+// {
+//   '--colors-primary': '#14B8A6',
+//   '--colors-background': '#FFFFFF',
+//   '--spacing-md': '16px',
+// }
+```
+
+### With Prefix
+
+Add a prefix to all variable names:
+
+```typescript
+const cssVars = toCssVariables({
+  schema,
+  theme,
+  options: { prefix: 'livery' },
+});
+// {
+//   '--livery-colors-primary': '#14B8A6',
+//   '--livery-colors-background': '#FFFFFF',
+//   '--livery-spacing-md': '16px',
+// }
+```
+
+### Custom Separator
+
+Change the separator between path segments:
+
+```typescript
+const cssVars = toCssVariables({
+  schema,
+  theme,
+  options: { separator: '_' },
+});
+// {
+//   '--colors_primary': '#14B8A6',
+//   ...
+// }
+```
+
+## Generating CSS String
+
+### toCssString
+
+Generate a CSS string for injection:
+
+```typescript
+import { toCssString } from '@livery/core';
+
+const css = toCssString({ schema, theme });
+// :root {
+//   --colors-primary: #14B8A6;
+//   --colors-background: #FFFFFF;
+//   --spacing-md: 16px;
+// }
+```
+
+### Custom Selector
+
+```typescript
+const css = toCssString({
+  schema,
+  theme,
+  selector: '[data-theme="light"]',
+});
+// [data-theme="light"] {
+//   --colors-primary: #14B8A6;
+//   ...
+// }
+```
+
+## Generating CSS for Multiple Themes
+
+### toCssStringAll
+
+Generate CSS for multiple static themes at once. This is ideal for light/dark mode or any predefined theme variants — no runtime CSS regeneration needed.
+
+```typescript
+import { createSchema, t, toCssStringAll, type InferTheme } from '@livery/core';
+
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      background: t.color(),
+      foreground: t.color(),
+    },
+  },
+});
+
+type Theme = InferTheme<typeof schema.definition>;
+
+const light: Theme = {
+  colors: {
+    primary: '#14B8A6',
+    background: '#FFFFFF',
+    foreground: '#0F172A',
+  },
+};
+
+const dark: Theme = {
+  colors: {
+    primary: '#2DD4BF',
+    background: '#0F172A',
+    foreground: '#F8FAFC',
+  },
+};
+
+const css = toCssStringAll({
+  schema,
+  themes: { light, dark },
+  defaultTheme: 'light',
+});
+// :root, [data-theme="light"] {
+//   --colors-primary: #14B8A6;
+//   --colors-background: #FFFFFF;
+//   --colors-foreground: #0F172A;
+// }
+//
+// [data-theme="dark"] {
+//   --colors-primary: #2DD4BF;
+//   --colors-background: #0F172A;
+//   --colors-foreground: #F8FAFC;
+// }
+```
+
+### Why Use toCssStringAll?
+
+With `toCssString()`, you generate CSS for one theme at a time. To switch themes, you'd need to regenerate and re-inject CSS. With `toCssStringAll()`, all themes are in the CSS upfront — switching is just changing a data attribute:
+
+```typescript
+// Toggle is trivial — no CSS regeneration
+document.documentElement.dataset.theme = 'dark';
+```
+
+### Custom Attribute
+
+By default, themes are selected via `data-theme`. You can customize this:
+
+```typescript
+const css = toCssStringAll({
+  schema,
+  themes: { light, dark },
+  defaultTheme: 'light',
+  attribute: 'data-color-scheme', // Custom attribute
+});
+// :root, [data-color-scheme="light"] { ... }
+// [data-color-scheme="dark"] { ... }
+```
+
+See [Static Themes in Next.js](/docs/examples/nextjs-static-themes) for complete implementation examples.
+
+## CSS Variable Helper
+
+### cssVar
+
+Create CSS variable references:
+
+```typescript
+import { cssVar } from '@livery/core';
+
+const color = cssVar({ path: 'colors.primary' });
+// 'var(--colors-primary)'
+
+const spacing = cssVar({ path: 'spacing.md', options: { prefix: 'theme' } });
+// 'var(--theme-spacing-md)'
+```
+
+### createCssVarHelper
+
+Create a reusable helper with preset options:
+
+```typescript
+import { createCssVarHelper } from '@livery/core';
+
+const $ = createCssVarHelper({
+  schema,
+  options: { prefix: 'livery' },
+});
+
+const styles = {
+  color: $('colors.primary'),      // 'var(--livery-colors-primary)'
+  padding: $('spacing.md'),        // 'var(--livery-spacing-md)'
+  fontFamily: $('typography.sans'), // 'var(--livery-typography-sans)'
+};
+```
+
+## Using in React
+
+```tsx
+import { createCssVarHelper } from '@livery/core';
+import { schema } from '@/lib/schema';
+
+const $ = createCssVarHelper({ schema });
+
+function Button({ children }) {
+  return (
+    <button
+      style={{
+        backgroundColor: $('colors.primary'),
+        padding: $('spacing.md'),
+        fontFamily: $('typography.fontFamily'),
+        border: 'none',
+        borderRadius: $('borderRadius.md'),
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+// $('colors.primary') returns 'var(--colors-primary)'
+```
+
+## Using in CSS
+
+After injecting CSS variables, use them directly:
+
+```css
+.button {
+  background-color: var(--colors-primary);
+  color: var(--colors-foreground);
+  padding: var(--spacing-md);
+  font-family: var(--typography-fontFamily);
+  border-radius: var(--borderRadius-md);
+}
+
+.card {
+  background: var(--colors-surface);
+  border: 1px solid var(--colors-border);
+  box-shadow: var(--shadows-md);
+}
+```
+
+## Using with Tailwind
+
+For Tailwind v4, use the `@theme` directive to map CSS variables:
+
+```css filename="app/globals.css"
+@import 'tailwindcss';
+
+@theme {
+  --color-primary: var(--colors-primary);
+  --color-background: var(--colors-background);
+  --color-foreground: var(--colors-foreground);
+}
+```
+
+Then use semantic Tailwind classes:
+
+```html
+<div class="bg-background text-foreground">
+  <button class="bg-primary text-white">
+    Click me
+  </button>
+</div>
+```
+
+For Tailwind v3, extend the theme in your config:
+
+```javascript filename="tailwind.config.js"
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        primary: 'var(--colors-primary)',
+        background: 'var(--colors-background)',
+        foreground: 'var(--colors-foreground)',
+      },
+    },
+  },
+};
+```
+
+## API Reference
+
+### `toCssVariables(options)`
+
+```typescript
+function toCssVariables<T extends SchemaDefinition>(
+  options: ToCssVariablesOptions<T>
+): Record<string, string>
+
+interface ToCssVariablesOptions<T> {
+  schema: Schema<T>;
+  theme: InferTheme<T>;
+  options?: CssVariableOptions;
+}
+
+interface CssVariableOptions {
+  prefix?: string;
+  separator?: string;
+  transformName?: (path: string) => string;
+}
+```
+
+### `toCssString(options)`
+
+```typescript
+function toCssString<T extends SchemaDefinition>(
+  options: ToCssStringOptions<T>
+): string
+
+interface ToCssStringOptions<T> {
+  schema: Schema<T>;
+  theme: InferTheme<T>;
+  options?: CssVariableOptions;
+  selector?: string; // Default: ':root'
+}
+```
+
+### `toCssStringAll(options)`
+
+```typescript
+function toCssStringAll<T extends SchemaDefinition, K extends string>(
+  options: ToCssStringAllOptions<T, K>
+): string
+
+interface ToCssStringAllOptions<T, K extends string> {
+  schema: Schema<T>;
+  themes: Record<K, InferTheme<T>>;
+  defaultTheme?: K;
+  options?: CssVariableOptions;
+  attribute?: string; // Default: 'data-theme'
+}
+```
+
+### `cssVar(options)`
+
+```typescript
+function cssVar(options: CssVarOptions): string
+
+interface CssVarOptions {
+  path: string;
+  options?: CssVariableOptions;
+}
+```
+
+### `createCssVarHelper(options)`
+
+```typescript
+function createCssVarHelper<T extends SchemaDefinition>(
+  options: CreateCssVarHelperOptions<T>
+): (path: string) => string
+
+interface CreateCssVarHelperOptions<T> {
+  schema: Schema<T>;
+  options?: CssVariableOptions;
+}
+```

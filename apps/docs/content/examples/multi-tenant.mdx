@@ -1,0 +1,489 @@
+# Multi-Tenant SaaS Theming (Next.js)
+
+Build a SaaS application where each customer gets their own branded experience. This guide shows the key patterns for tenant detection, theme storage, and caching.
+
+import { Callout, Tabs } from 'nextra/components';
+import { UsageMatrix } from '@/components/usage-matrix';
+
+<UsageMatrix highlight="ssr-dynamic" />
+
+<Callout>
+  **Using React without a server?** See [Dynamic Themes in
+  React](/docs/examples/react-dynamic-themes) — use the tenant subdomain or path as your `themeId`
+  and you're set.
+</Callout>
+
+## Overview
+
+In a multi-tenant application, each tenant (customer) may want:
+
+- Their own brand colors
+- Custom typography
+- Unique UI styling
+- Logo and asset customization
+
+Livery handles all of this with a single codebase.
+
+## Architecture
+
+```
+Request Flow:
+
+  Browser           Middleware          App
+  acme.app.io  -->  detect tenant  -->  themed for acme
+```
+
+## 1. Tenant Detection
+
+Use `createLiveryMiddleware` to detect the tenant from the request.
+
+<Tabs items={['Subdomain', 'Path', 'Custom Domain']}>
+  <Tabs.Tab>
+    The most common pattern — each tenant gets a subdomain.
+
+    ```typescript filename="middleware.ts"
+    import { createLiveryMiddleware } from '@livery/next/middleware';
+
+    export const middleware = createLiveryMiddleware({
+      strategy: 'subdomain',
+      subdomain: {
+        baseDomain: 'myapp.io',
+        ignore: ['www', 'app'], // These subdomains won't be treated as tenants
+      },
+      fallback: '/select-workspace', // Redirect if no tenant found
+    });
+
+    export const config = {
+      matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+    };
+    ```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+    For apps that don't use subdomains.
+
+    ```typescript filename="middleware.ts"
+    import { createLiveryMiddleware } from '@livery/next/middleware';
+
+    export const middleware = createLiveryMiddleware({
+      strategy: 'path',
+      path: {
+        prefix: '/theme/', // /theme/acme/dashboard → tenant "acme"
+        rewrite: true,      // Rewrite to /dashboard
+      },
+      fallback: '/select-workspace',
+    });
+
+    export const config = {
+      matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+    };
+    ```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+    For white-label setups where tenants use their own domains.
+
+    ```typescript filename="middleware.ts"
+    import { createLiveryMiddleware } from '@livery/next/middleware';
+
+    // Map custom domains to tenants (typically from database)
+    const domainToTenant: Record<string, string> = {
+      'acme.com': 'acme',
+      'globex.com': 'globex',
+      'umbrella.co': 'umbrella',
+    };
+
+    export const middleware = createLiveryMiddleware({
+      strategy: 'custom',
+      getTheme: (request) => {
+        const hostname = request.headers.get('host') || '';
+        const domain = hostname.replace(/:\d+$/, ''); // Remove port
+        return { themeId: domainToTenant[domain] ?? null };
+      },
+      fallback: '/not-found',
+    });
+
+    export const config = {
+      matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+    };
+    ```
+
+  </Tabs.Tab>
+</Tabs>
+
+## 2. Theme Schema
+
+Define a comprehensive schema for tenant customization:
+
+```typescript filename="lib/theme/schema.ts"
+import { createSchema, t, type InferTheme } from '@livery/core';
+
+export const schema = createSchema({
+  definition: {
+    brand: {
+      name: t.string().describe('Company name'),
+      logoUrl: t.string().describe('Logo image URL'),
+      faviconUrl: t.string().describe('Favicon URL'),
+    },
+    colors: {
+      primary: t.color().describe('Primary brand color'),
+      primaryHover: t.color().describe('Primary hover state'),
+      secondary: t.color().describe('Secondary color'),
+      background: t.color().describe('Page background'),
+      surface: t.color().describe('Card/panel background'),
+      text: t.color().describe('Main text color'),
+      textMuted: t.color().describe('Secondary text'),
+      border: t.color().describe('Border color'),
+      success: t.color(),
+      warning: t.color(),
+      error: t.color(),
+    },
+    typography: {
+      fontFamily: {
+        sans: t.fontFamily(),
+        mono: t.fontFamily(),
+      },
+      fontSize: {
+        sm: t.dimension(),
+        base: t.dimension(),
+        lg: t.dimension(),
+        xl: t.dimension(),
+        '2xl': t.dimension(),
+      },
+    },
+    spacing: {
+      sm: t.dimension(),
+      md: t.dimension(),
+      lg: t.dimension(),
+      xl: t.dimension(),
+    },
+    borderRadius: {
+      sm: t.dimension(),
+      md: t.dimension(),
+      lg: t.dimension(),
+      full: t.dimension(),
+    },
+  },
+});
+
+export type TenantTheme = InferTheme<typeof schema.definition>;
+```
+
+## 3. Database Storage
+
+Store tenant themes in your database.
+
+### Prisma Schema Example
+
+```prisma filename="prisma/schema.prisma"
+model Tenant {
+  id        String   @id @default(cuid())
+  subdomain String   @unique
+  name      String
+  theme     Json     // Store theme as JSON
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+
+### Theme Resolver
+
+Use `createResolver` — it fetches your data and automatically merges with schema defaults:
+
+```typescript filename="lib/theme/resolver.ts"
+import { createResolver } from '@livery/core';
+import { prisma } from '@/lib/prisma';
+import { schema, type TenantTheme } from './schema';
+
+export const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }): Promise<Partial<TenantTheme>> => {
+    if (themeId === 'default') {
+      return {}; // Use schema defaults
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { subdomain: themeId },
+      select: { theme: true },
+    });
+
+    // Return partial data — resolver deep-merges with schema defaults
+    return (tenant?.theme as Partial<TenantTheme>) ?? {};
+  },
+  cache: {
+    ttl: 5 * 60 * 1000, // 5 minutes
+  },
+});
+```
+
+## 4. Cache Invalidation
+
+Invalidate when a tenant updates their theme:
+
+```typescript filename="lib/theme/cache.ts"
+import { resolver } from './resolver';
+
+export async function invalidateThemeCache(themeId: string) {
+  resolver.invalidate({ themeId });
+}
+```
+
+## 5. Provider Setup
+
+Create a client provider that wraps the theme context:
+
+```tsx filename="lib/providers.tsx"
+'use client';
+
+import { ReactNode } from 'react';
+import { createDynamicThemeProvider } from '@livery/react';
+import { schema, type TenantTheme } from './theme/schema';
+import { resolver } from './theme/resolver';
+
+const { DynamicThemeProvider, useTheme } = createDynamicThemeProvider({ schema });
+
+// Re-export useTheme for use in components
+export { useTheme };
+
+interface Props {
+  children: ReactNode;
+  themeId: string;
+  initialTheme: TenantTheme;
+}
+
+export function ThemeProvider({ children, themeId, initialTheme }: Props) {
+  return (
+    <DynamicThemeProvider initialThemeId={themeId} resolver={resolver} initialTheme={initialTheme}>
+      {children}
+    </DynamicThemeProvider>
+  );
+}
+```
+
+## 6. Root Layout
+
+Resolve the theme server-side for instant rendering:
+
+```tsx filename="app/layout.tsx"
+import { headers } from 'next/headers';
+import { getThemeFromHeaders } from '@livery/next';
+import { toCssString } from '@livery/core';
+import { resolver } from '@/lib/theme/resolver';
+import { schema } from '@/lib/theme/schema';
+import { ThemeProvider } from '@/lib/providers';
+import './globals.css';
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Get tenant from middleware
+  const headersList = await headers();
+  const themeId = getThemeFromHeaders({ headers: headersList }) ?? 'default';
+
+  // Resolve theme (cached by resolver)
+  const theme = await resolver.resolve({ themeId });
+
+  // Generate CSS for SSR
+  const css = toCssString({ schema, theme });
+
+  return (
+    <html lang="en">
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: `:root { ${css} }` }} />
+        <link rel="icon" href={theme.brand.faviconUrl} />
+      </head>
+      <body className="font-sans antialiased">
+        <ThemeProvider themeId={themeId} initialTheme={theme}>
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+## 7. Using Theme Values
+
+Access theme values in components:
+
+```tsx filename="components/Header.tsx"
+'use client';
+
+import { useTheme } from '@/lib/providers';
+import Image from 'next/image';
+
+export function Header() {
+  const { theme } = useTheme();
+
+  return (
+    <header className="bg-surface border-b border-border">
+      <div className="max-w-7xl mx-auto px-lg py-md flex items-center justify-between">
+        <div className="flex items-center gap-md">
+          <Image src={theme.brand.logoUrl} alt={theme.brand.name} width={32} height={32} />
+          <span className="font-semibold text-text">{theme.brand.name}</span>
+        </div>
+
+        <nav className="flex gap-md">
+          <a href="/dashboard" className="text-text-muted hover:text-text">
+            Dashboard
+          </a>
+          <a href="/settings" className="text-text-muted hover:text-text">
+            Settings
+          </a>
+        </nav>
+      </div>
+    </header>
+  );
+}
+```
+
+## 8. Theme Editor (Admin)
+
+Allow tenants to customize their theme:
+
+```tsx filename="app/settings/theme/page.tsx"
+'use client';
+
+import { useState } from 'react';
+import { useTheme } from '@/lib/providers';
+
+type EditorState = 'idle' | 'saving' | 'saved' | 'error';
+
+export default function ThemeEditor() {
+  const { theme } = useTheme();
+  const [colors, setColors] = useState(theme?.colors);
+  const [state, setState] = useState<EditorState>('idle');
+
+  // Live preview — apply changes immediately as user edits
+  function handleColorChange(key: keyof typeof colors, value: string) {
+    setColors({ ...colors, [key]: value });
+    document.documentElement.style.setProperty(`--colors-${key}`, value);
+    if (state === 'saved') setState('idle');
+  }
+
+  async function handleSave() {
+    setState('saving');
+    try {
+      await fetch('/api/theme/theme', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ colors }),
+      });
+      setState('saved');
+    } catch {
+      setState('error');
+    }
+  }
+
+  if (!colors) return null;
+
+  const buttonText = {
+    idle: 'Save Changes',
+    saving: 'Saving...',
+    saved: 'Saved!',
+    error: 'Error — Retry',
+  }[state];
+
+  return (
+    <div className="max-w-2xl mx-auto p-lg">
+      <h1 className="text-2xl font-bold text-text mb-lg">Theme Settings</h1>
+
+      <div className="bg-surface rounded-lg border border-border p-lg">
+        <h2 className="text-lg font-semibold mb-md">Brand Colors</h2>
+
+        <div className="grid gap-md">
+          <ColorPicker
+            label="Primary"
+            value={colors.primary}
+            onChange={(v) => handleColorChange('primary', v)}
+          />
+          <ColorPicker
+            label="Background"
+            value={colors.background}
+            onChange={(v) => handleColorChange('background', v)}
+          />
+          <ColorPicker
+            label="Text"
+            value={colors.text}
+            onChange={(v) => handleColorChange('text', v)}
+          />
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={state === 'saving'}
+          className="mt-lg bg-primary hover:bg-primary-hover text-white px-md py-sm rounded-md"
+        >
+          {buttonText}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ColorPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="flex items-center gap-md">
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-10 h-10 rounded cursor-pointer"
+      />
+      <span className="text-text">{label}</span>
+      <code className="text-text-muted text-sm ml-auto">{value}</code>
+    </label>
+  );
+}
+```
+
+## 9. API Route
+
+Handle theme updates:
+
+```typescript filename="app/api/theme/theme/route.ts"
+import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import { getThemeFromHeaders } from '@livery/next';
+import { prisma } from '@/lib/prisma';
+import { invalidateThemeData } from '@/lib/theme/cache';
+
+export async function PUT(request: NextRequest) {
+  const headersList = await headers();
+  const themeId = getThemeFromHeaders({ headers: headersList });
+
+  if (!themeId || themeId === 'default') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const body = await request.json();
+
+  // Update theme in database
+  await prisma.tenant.update({
+    where: { subdomain: themeId },
+    data: {
+      theme: body,
+    },
+  });
+
+  // Invalidate cache
+  await invalidateThemeData(themeId);
+
+  return NextResponse.json({ success: true });
+}
+```
+
+## Key Takeaways
+
+1. **Detect tenant early** - Use middleware to identify the tenant before rendering
+2. **Use the resolver** - It handles caching, merging with defaults, and validation
+3. **Type everything** - Use Livery's schema for full type safety
+4. **Invalidate on change** - Clear caches when tenants update their themes

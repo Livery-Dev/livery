@@ -1,0 +1,173 @@
+# Static Themes in Next.js
+
+Light/dark mode with zero flash and zero runtime overhead.
+
+import { Callout } from 'nextra/components'
+import { UsageMatrix } from '@/components/usage-matrix'
+
+<UsageMatrix highlight="ssr-static" />
+
+<Callout>
+  **Using Remix or Astro?** The pattern is the same — read the theme from a cookie, inject CSS with `toCssStringAll()`, set `data-theme` on the server. Framework-specific adapters coming soon.
+</Callout>
+
+## How It Works
+
+1. All theme CSS is generated at build time with `toCssStringAll()`
+2. Server reads the user's preference from a cookie
+3. Server renders with the correct `data-theme` attribute
+4. No flash — the right theme is there from the first paint
+
+## 1. Define Schema and Themes
+
+```typescript filename="lib/theme.ts"
+import { createSchema, t, toCssStringAll, type InferTheme } from '@livery/core';
+import { createStaticThemeProvider } from '@livery/react';
+
+export const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      primaryHover: t.color(),
+      background: t.color(),
+      foreground: t.color(),
+      muted: t.color(),
+      border: t.color(),
+    },
+  },
+});
+
+type Theme = InferTheme<typeof schema.definition>;
+
+const light: Theme = {
+  colors: {
+    primary: '#14B8A6',
+    primaryHover: '#0D9488',
+    background: '#FFFFFF',
+    foreground: '#0F172A',
+    muted: '#64748B',
+    border: '#E2E8F0',
+  },
+};
+
+const dark: Theme = {
+  colors: {
+    primary: '#2DD4BF',
+    primaryHover: '#14B8A6',
+    background: '#0F172A',
+    foreground: '#F8FAFC',
+    muted: '#94A3B8',
+    border: '#334155',
+  },
+};
+
+// Generate CSS for ALL themes at once
+export const themesCss = toCssStringAll({
+  schema,
+  themes: { light, dark },
+  defaultTheme: 'light',
+});
+
+// Provider and hook for client components
+export const { StaticThemeProvider, useTheme } = createStaticThemeProvider({
+  themes: ['light', 'dark'] as const,
+  defaultTheme: 'light',
+});
+
+export type ThemeName = 'light' | 'dark';
+```
+
+## 2. Root Layout
+
+Server reads the cookie and injects the CSS:
+
+```tsx filename="app/layout.tsx"
+import { cookies } from 'next/headers';
+import { themesCss, StaticThemeProvider, ThemeName } from '@/lib/theme';
+import './globals.css';
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const theme = (cookieStore.get('theme')?.value as ThemeName) ?? 'light';
+
+  return (
+    <html lang="en" data-theme={theme}>
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: themesCss }} />
+      </head>
+      <body>
+        <StaticThemeProvider initialTheme={theme} persist="cookie">
+          {children}
+        </StaticThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+## 3. Theme Toggle
+
+```tsx filename="components/theme-toggle.tsx"
+'use client';
+
+import { useTheme } from '@/lib/theme';
+
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <button
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      className="bg-muted/20 px-3 py-1.5 rounded text-sm"
+    >
+      {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+    </button>
+  );
+}
+```
+
+## 4. Use Semantic Classes
+
+```tsx filename="app/page.tsx"
+import { ThemeToggle } from '@/components/theme-toggle';
+
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-background text-foreground p-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">My App</h1>
+        <ThemeToggle />
+      </div>
+      <p className="text-muted">Theme switching with SSR support.</p>
+    </main>
+  );
+}
+```
+
+## With Tailwind CSS v4
+
+Map Livery's CSS variables to Tailwind:
+
+```css filename="app/globals.css"
+@import 'tailwindcss';
+
+@theme {
+  --color-primary: var(--colors-primary);
+  --color-primary-hover: var(--colors-primaryHover);
+  --color-background: var(--colors-background);
+  --color-foreground: var(--colors-foreground);
+  --color-muted: var(--colors-muted);
+  --color-border: var(--colors-border);
+}
+```
+
+Now use `bg-background`, `text-foreground`, `text-muted` etc.
+
+## Why This Works
+
+| Aspect | How |
+|--------|-----|
+| **No flash** | Server sets `data-theme` before sending HTML |
+| **No runtime CSS** | All themes in one stylesheet via `toCssStringAll()` |
+| **Persistence** | `persist="cookie"` syncs with server |
+| **Type-safe** | Schema ensures themes match expected shape |

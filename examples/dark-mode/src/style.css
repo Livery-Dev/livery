@@ -1,0 +1,309 @@
+/**
+ * Styles for the dark mode example.
+ * Uses CSS variables and smooth transitions.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--typography-font-family);
+  font-size: var(--typography-font-size);
+  line-height: var(--typography-line-height);
+  background-color: var(--colors-background);
+  color: var(--colors-text);
+  padding: var(--spacing-lg);
+  min-height: 100vh;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+#app {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Controls Panel */
+.controls {
+  background-color: var(--colors-surface);
+  border-radius: var(--borders-radius);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  border: 1px solid var(--colors-border);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.control-group h3 {
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--colors-text-muted);
+  margin-bottom: var(--spacing-sm);
+}
+
+.select {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--colors-border);
+  border-radius: var(--borders-radius);
+  background: var(--colors-surface);
+  color: var(--colors-text);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    background-color 0.3s;
+}
+
+.select:hover {
+  border-color: var(--brand-primary);
+}
+
+.scheme-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.scheme-btn {
+  flex: 1;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--colors-border);
+  background: var(--colors-surface);
+  color: var(--colors-text-muted);
+  border-radius: var(--borders-radius);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.875em;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.scheme-btn .icon {
+  font-size: 1.25em;
+}
+
+.scheme-btn:hover {
+  border-color: var(--brand-primary);
+  color: var(--colors-text);
+}
+
+.scheme-btn.active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: white;
+}
+
+.toggle-btn {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--colors-surface-hover);
+  border: 1px solid var(--colors-border);
+  border-radius: var(--borders-radius);
+  color: var(--colors-text);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: white;
+}
+
+/* Cards */
+.card {
+  background-color: var(--colors-surface);
+  border-radius: var(--borders-radius);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  border: 1px solid var(--colors-border);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.hero-card {
+  text-align: center;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Typography */
+h1,
+h2,
+h3 {
+  color: var(--colors-text);
+  margin-bottom: var(--spacing-sm);
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+h1 {
+  font-size: 2em;
+}
+
+h2 {
+  font-size: 1.25em;
+}
+
+p {
+  margin-bottom: var(--spacing-sm);
+}
+
+.muted {
+  color: var(--colors-text-muted);
+}
+
+.small {
+  font-size: 0.875em;
+}
+
+.brand-name {
+  color: var(--brand-primary);
+  transition: color 0.3s ease;
+}
+
+/* Buttons */
+.button-group {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  margin-top: var(--spacing-md);
+}
+
+.primary-btn {
+  background-color: var(--brand-primary);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--borders-radius);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 500;
+  transition:
+    background-color 0.3s ease,
+    opacity 0.2s ease;
+}
+
+.primary-btn:hover {
+  opacity: 0.9;
+}
+
+.secondary-btn {
+  background-color: transparent;
+  color: var(--brand-secondary);
+  border: 2px solid var(--brand-secondary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--borders-radius);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 500;
+  transition:
+    background-color 0.2s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.secondary-btn:hover {
+  background-color: var(--colors-surface-hover);
+}
+
+/* Color Swatches */
+.color-swatches {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.swatch {
+  height: 50px;
+  border-radius: var(--borders-radius);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.swatch span {
+  font-size: 10px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.swatch.primary {
+  background-color: var(--brand-primary);
+}
+.swatch.secondary {
+  background-color: var(--brand-secondary);
+}
+.swatch.background {
+  background-color: var(--colors-background);
+  border: 1px solid var(--colors-border);
+}
+.swatch.surface {
+  background-color: var(--colors-surface);
+  border: 1px solid var(--colors-border);
+}
+
+/* Code Block */
+.code-block {
+  background-color: var(--colors-background);
+  border: 1px solid var(--colors-border);
+  border-radius: var(--borders-radius);
+  padding: var(--spacing-md);
+  overflow-x: auto;
+  font-size: 13px;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.code-block code {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  color: var(--colors-text);
+  white-space: pre;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  body {
+    padding: var(--spacing-md);
+  }
+
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+}

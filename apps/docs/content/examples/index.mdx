@@ -1,0 +1,46 @@
+# Patterns
+
+Guides for each quadrant of the [usage matrix](/docs/how-to-use-these-docs).
+
+## SSR + Static
+
+**Next.js with bundled themes (light/dark mode)**
+
+Server reads the user's preference from a cookie and renders with the correct `data-theme` attribute. No flash.
+
+[Static Themes in Next.js →](/docs/examples/nextjs-static-themes)
+
+## SSR + Dynamic
+
+**Next.js with themes from a database or API**
+
+Server detects the tenant and fetches their theme. Each customer sees their own branding instantly.
+
+- [Multi-Tenant SaaS →](/docs/examples/multi-tenant)
+- [White-Label Apps →](/docs/examples/white-label)
+- [A/B Testing →](/docs/examples/ab-testing)
+
+## CSR + Static
+
+**React SPA with bundled themes (light/dark mode)**
+
+Themes are bundled in your code. An init script runs before React to prevent flash.
+
+[Static Themes in React →](/docs/examples/react-static-themes)
+
+## CSR + Dynamic
+
+**React SPA with themes from an API**
+
+Client fetches themes at runtime. Brief loading state while theme loads.
+
+[Dynamic Themes in React →](/docs/examples/react-dynamic-themes)
+
+## Quick Reference
+
+| Pattern | Package(s) | Key API |
+|---------|-----------|---------|
+| SSR + Static | `@livery/core` | `toCssStringAll()`, `data-theme` |
+| SSR + Dynamic | `@livery/core` + `@livery/react` | `createResolver()`, `toCssString()` |
+| CSR + Static | `@livery/core` + `@livery/react` | `createStaticThemeProvider()`, `getThemeInitScript()` |
+| CSR + Dynamic | `@livery/core` + `@livery/react` | `createDynamicThemeProvider()`, `createResolver()` |

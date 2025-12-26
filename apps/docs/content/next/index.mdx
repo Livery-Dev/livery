@@ -1,0 +1,212 @@
+# @livery/next
+
+Next.js integration for Livery with App Router support, SSR utilities, and optional multi-tenant middleware.
+
+## When to Use This Package
+
+**Use `@livery/next` when:**
+- Building a Next.js application with App Router
+- You want SSR support for themes (prevents flash of unstyled content)
+- You need multi-tenant features (subdomain/path detection)
+
+**Use `@livery/react` instead when:**
+- Using React without Next.js
+- Using Create React App, Vite, Remix, or other frameworks
+
+## Installation
+
+```bash npm2yarn
+npm install @livery/next
+```
+
+> **Note:** `@livery/next` includes `@livery/react` and `@livery/core` — you don't need to install them separately.
+
+## Overview
+
+`@livery/next` provides:
+
+- **Re-exports** — Everything from `@livery/core` and `@livery/react`
+- **SSR Utilities** — `getLiveryData` for server-side theme resolution
+- **Cache Headers** — Proper caching for theme responses
+- **Multi-Tenant Middleware** — Optional tenant detection from subdomain, path, or header
+
+## Quick Start
+
+The simplest setup — works for dark mode, user preferences, or any client-side theme switching.
+
+### 1. Create Schema and Provider
+
+```typescript filename="lib/livery.ts"
+import { createSchema, t, createResolver, type InferTheme } from '@livery/next';
+import { createDynamicThemeProvider } from '@livery/next/react';
+
+// Define your schema
+export const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      background: t.color(),
+      foreground: t.color(),
+    },
+  },
+});
+
+// Infer the theme type from your schema
+type Theme = InferTheme<typeof schema.definition>;
+
+// Type-safe themes — TypeScript enforces the structure
+const lightTheme: Theme = {
+  colors: { primary: '#14B8A6', background: '#FFFFFF', foreground: '#0F172A' },
+};
+
+const darkTheme: Theme = {
+  colors: { primary: '#2DD4BF', background: '#0F172A', foreground: '#F8FAFC' },
+};
+
+const themes = { light: lightTheme, dark: darkTheme };
+
+export const resolver = createResolver({
+  schema,
+  fetcher: ({ themeId }) => themes[themeId as keyof typeof themes] ?? lightTheme,
+});
+
+export const { DynamicThemeProvider, useTheme } = createDynamicThemeProvider({ schema });
+```
+
+### 2. Add Provider to Layout
+
+```tsx filename="app/layout.tsx"
+import { DynamicThemeProvider, resolver } from '@/lib/livery';
+import './globals.css';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <DynamicThemeProvider initialThemeId="light" resolver={resolver}>
+          {children}
+        </DynamicThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### 3. Configure Tailwind
+
+```css filename="app/globals.css"
+@import 'tailwindcss';
+
+@theme {
+  --color-primary: var(--colors-primary);
+  --color-background: var(--colors-background);
+  --color-foreground: var(--colors-foreground);
+}
+```
+
+### 4. Use It
+
+```tsx filename="app/page.tsx"
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-background text-foreground p-8">
+      <button className="bg-primary text-white px-4 py-2 rounded-md">
+        Click me
+      </button>
+    </main>
+  );
+}
+```
+
+That's it! For theme switching, see the [Quick Start guide](/docs/quick-start#step-8-add-theme-switching).
+
+## SSR: Preventing Flash of Unstyled Content
+
+Livery fully supports server-side rendering. By generating CSS on the server and injecting it into `<head>`, themes are applied before the page renders — no flash of unstyled content (FOUC).
+
+**The pattern:**
+1. Generate CSS server-side using `getLiveryData()`
+2. Inject into `<head>` as a `<style>` tag
+3. Pass `initialTheme` to `DynamicThemeProvider` to skip client-side fetch
+
+```tsx filename="app/layout.tsx"
+import { getLiveryData } from '@livery/next';
+import { DynamicThemeProvider, schema, resolver } from '@/lib/livery';
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { theme, css } = await getLiveryData({ themeId: 'light', schema, resolver });
+
+  return (
+    <html lang="en">
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: `:root { ${css} }` }} />
+      </head>
+      <body>
+        <DynamicThemeProvider initialThemeId="light" resolver={resolver} initialTheme={theme}>
+          {children}
+        </DynamicThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+## Multi-Tenant: Automatic Theme Detection
+
+For multi-tenant apps, use middleware to detect the tenant from subdomain, path, or header:
+
+```typescript filename="middleware.ts"
+import { createLiveryMiddleware } from '@livery/next/middleware';
+
+export const middleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+  subdomain: {
+    baseDomain: 'yourapp.com',
+    ignore: ['www', 'app'],
+  },
+  fallback: '/select-workspace',
+});
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+};
+```
+
+Then read the theme ID in your layout:
+
+```tsx filename="app/layout.tsx"
+import { headers } from 'next/headers';
+import { getLiveryData, getThemeFromHeaders } from '@livery/next';
+import { schema, resolver } from '@/lib/livery';
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const headersList = await headers();
+  const themeId = getThemeFromHeaders({ headers: headersList }) ?? 'default';
+
+  const { theme, css } = await getLiveryData({ themeId, schema, resolver });
+
+  // ... rest of layout
+}
+```
+
+### Theme Detection Strategies
+
+| Strategy | Example | Description |
+|----------|---------|-------------|
+| `subdomain` | `acme.yourapp.com` | Extract from subdomain |
+| `path` | `/t/acme/dashboard` | Extract from URL path |
+| `header` | `X-Theme-ID: acme` | Extract from request header |
+| `query` | `?theme=acme` | Extract from query parameter |
+| `custom` | — | Use your own extraction logic |
+
+See the [Multi-Tenant Guide](/docs/examples/multi-tenant) for a complete walkthrough.
+
+## Guides
+
+- [Middleware](/docs/next/middleware) — Configure tenant detection middleware
+- [App Router](/docs/next/app-router) — Server-side utilities for App Router
+- [Server-Side Rendering](/docs/next/ssr) — SSR and hydration best practices
+
+## API Reference
+
+See the full [API Reference](/docs/api/next) for detailed documentation.

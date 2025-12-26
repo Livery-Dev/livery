@@ -1,0 +1,269 @@
+# Theme Switching
+
+Learn how to switch themes dynamically in your React application.
+
+## Basic Theme Switching
+
+Update the `themeId` prop to switch themes:
+
+```tsx
+'use client';
+
+import { useState } from 'react';
+import { DynamicThemeProvider, resolver } from '@/lib/livery';
+
+function App() {
+  const [theme, setTheme] = useState('light');
+
+  return (
+    <DynamicThemeProvider initialThemeId={theme} resolver={resolver}>
+      <ThemeSwitcher currentTheme={theme} onChange={setTheme} />
+      <Content />
+    </DynamicThemeProvider>
+  );
+}
+
+function ThemeSwitcher({ currentTheme, onChange }) {
+  return (
+    <select value={currentTheme} onChange={(e) => onChange(e.target.value)}>
+      <option value="light">Light</option>
+      <option value="dark">Dark</option>
+    </select>
+  );
+}
+```
+
+## Using Context
+
+Create a context for theme switching:
+
+```tsx filename="components/ThemeContext.tsx"
+'use client';
+
+import { createContext, useContext, useState, ReactNode } from 'react';
+import { DynamicThemeProvider, resolver } from '@/lib/livery';
+
+type ThemeContextValue = {
+  currentTheme: string;
+  setTheme: (theme: string) => void;
+  availableThemes: string[];
+};
+
+const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+export function useThemeSwitcher() {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useThemeSwitcher must be used within ThemeProvider');
+  }
+  return context;
+}
+
+const availableThemes = ['light', 'dark', 'blue', 'green'];
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [currentTheme, setCurrentTheme] = useState('light');
+
+  return (
+    <ThemeContext.Provider
+      value={{ currentTheme, setTheme: setCurrentTheme, availableThemes }}
+    >
+      <DynamicThemeProvider initialThemeId={currentTheme} resolver={resolver}>
+        {children}
+      </DynamicThemeProvider>
+    </ThemeContext.Provider>
+  );
+}
+```
+
+Use in components:
+
+```tsx
+function ThemeToggle() {
+  const { currentTheme, setTheme, availableThemes } = useThemeSwitcher();
+
+  return (
+    <div>
+      {availableThemes.map((theme) => (
+        <button
+          key={theme}
+          onClick={() => setTheme(theme)}
+          aria-pressed={currentTheme === theme}
+        >
+          {theme}
+        </button>
+      ))}
+    </div>
+  );
+}
+```
+
+## Persisting Theme Choice
+
+### localStorage
+
+```tsx
+'use client';
+
+import { useState, useEffect } from 'react';
+
+function usePersistedTheme(defaultTheme = 'light') {
+  const [theme, setTheme] = useState(defaultTheme);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) setTheme(saved);
+    setMounted(true);
+  }, []);
+
+  const setPersistedTheme = (newTheme: string) => {
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+  };
+
+  return { theme, setTheme: setPersistedTheme, mounted };
+}
+```
+
+### With System Preference
+
+```tsx
+function useThemeWithSystemPreference() {
+  const [theme, setTheme] = useState('light');
+
+  useEffect(() => {
+    // Check localStorage first
+    const saved = localStorage.getItem('theme');
+    if (saved) {
+      setTheme(saved);
+      return;
+    }
+
+    // Fall back to system preference
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    setTheme(mediaQuery.matches ? 'dark' : 'light');
+
+    // Listen for changes
+    const handler = (e: MediaQueryListEvent) => {
+      if (!localStorage.getItem('theme')) {
+        setTheme(e.matches ? 'dark' : 'light');
+      }
+    };
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  return { theme, setTheme };
+}
+```
+
+## Smooth Transitions
+
+Add CSS transitions for smooth theme changes:
+
+```css filename="globals.css"
+/* Apply to all elements */
+* {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+/* Respect user preference */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none;
+  }
+}
+```
+
+Or scope to specific properties:
+
+```css
+.themed-component {
+  transition: background-color 0.2s ease;
+}
+```
+
+## Theme Switcher UI
+
+### Dropdown
+
+```tsx
+function ThemeDropdown() {
+  const { currentTheme, setTheme, availableThemes } = useThemeSwitcher();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)}>
+        {currentTheme}
+      </button>
+      {open && (
+        <ul className="absolute top-full mt-2">
+          {availableThemes.map((theme) => (
+            <li key={theme}>
+              <button
+                onClick={() => {
+                  setTheme(theme);
+                  setOpen(false);
+                }}
+              >
+                {theme}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+```
+
+### Toggle Button (Light/Dark)
+
+```tsx
+function DarkModeToggle() {
+  const { currentTheme, setTheme } = useThemeSwitcher();
+  const isDark = currentTheme === 'dark';
+
+  return (
+    <button
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      {isDark ? '☀️' : '🌙'}
+    </button>
+  );
+}
+```
+
+## Preventing Flash
+
+To prevent a flash of the wrong theme on page load:
+
+```tsx filename="app/layout.tsx"
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Inline script to set theme before React hydrates */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const theme = localStorage.getItem('theme') ||
+                  (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.dataset.theme = theme;
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```

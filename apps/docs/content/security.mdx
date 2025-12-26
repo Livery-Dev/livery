@@ -1,0 +1,281 @@
+# Security
+
+Livery is designed with security in mind for multi-tenant environments where theme data may come from untrusted sources.
+
+## Defense Layers
+
+### Input Validation
+
+All theme token values are validated before use:
+
+| Token Type | Validation |
+|------------|------------|
+| `color` | Hex, RGB/RGBA, HSL/HSLA, CSS named colors only |
+| `dimension` | Numbers with valid CSS units (px, rem, em, %, vh, vw, etc.) |
+| `url` | Protocol whitelist + dangerous MIME type blocking |
+| `fontFamily` | Non-empty strings |
+| `fontWeight` | 1-1000 or keywords (normal, bold, lighter, bolder) |
+| `shadow` | Valid CSS shadow syntax |
+| `number` | Finite numbers only |
+| `boolean` | Strict true/false |
+| `string` | Any string (escaped in CSS output) |
+
+### URL Security
+
+URLs are strictly validated to prevent XSS and other attacks:
+
+**Allowed Protocols:**
+- `http:`
+- `https:`
+- `data:` (with MIME type restrictions)
+
+**Blocked Protocols:**
+- `javascript:` (XSS prevention)
+- `vbscript:` (IE XSS prevention)
+- `file:` (local file access prevention)
+- All other protocols
+
+**Blocked Data URLs:**
+- `data:text/html` (script execution)
+- `data:application/javascript` (script execution)
+
+**Allowed Data URLs:**
+- `data:image/*` (images)
+- `data:font/*` (fonts)
+- Other safe MIME types
+
+### CSS Injection Prevention
+
+All values are escaped before CSS generation to prevent breaking out of CSS variable declarations:
+
+```typescript
+// Characters escaped: \ " ' ; { } \n \r
+
+// Example attack that is neutralized:
+const malicious = 'red; } body { background: url(evil); } .x {';
+// Becomes: 'red\; \} body \{ background: url(evil)\; \} .x \{'
+```
+
+## Cookie Security
+
+When using `persist='cookie'`, configure cookie security options:
+
+```tsx
+<DynamicThemeProvider
+  persist="cookie"
+  cookieOptions={{
+    sameSite: 'Lax',     // 'Strict' | 'Lax' | 'None'
+    secure: true,         // auto-detected from protocol if not set
+    maxAge: 31536000,     // 1 year in seconds
+    path: '/',
+  }}
+  // ...
+/>
+```
+
+### Cookie Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `sameSite` | `'Lax'` | Prevents CSRF. Use `'Strict'` for sensitive applications |
+| `secure` | Auto-detect | Only sent over HTTPS. Auto-enabled when on HTTPS |
+| `path` | `'/'` | Cookie scope |
+| `maxAge` | `31536000` | Cookie lifetime in seconds (1 year) |
+
+### HttpOnly Limitation
+
+Cookies set by Livery are **not** HttpOnly because they must be readable by JavaScript. If you require HttpOnly cookies:
+
+1. Handle theme ID storage server-side
+2. Pass the theme ID to `initialThemeId` prop from your server
+3. Don't use client-side persistence
+
+## Content Security Policy (CSP)
+
+For applications with strict CSP, Livery supports nonce-based style injection.
+
+### Client-Side Usage
+
+Pass a nonce to the provider:
+
+```tsx
+<DynamicThemeProvider
+  nonce={cspNonce}
+  initialThemeId="acme"
+  resolver={resolver}
+>
+  {children}
+</DynamicThemeProvider>
+```
+
+### Next.js App Router
+
+Use the `getNonce` utility to read the nonce from headers:
+
+```tsx filename="app/layout.tsx"
+import { headers } from 'next/headers';
+import { getNonce, getLiveryData } from '@livery/next';
+import { LiveryScript } from '@livery/react/server';
+import { DynamicThemeProvider, resolver } from '@/lib/livery';
+
+export default async function Layout({ children }) {
+  const headersList = await headers();
+  const nonce = getNonce({ headers: headersList });
+  const themeId = getThemeFromHeaders({ headers: headersList }) ?? 'default';
+  const { css, theme } = await getLiveryData({ themeId, schema, resolver });
+
+  return (
+    <html>
+      <head>
+        <LiveryScript css={css} nonce={nonce} />
+      </head>
+      <body>
+        <DynamicThemeProvider
+          nonce={nonce}
+          initialThemeId={themeId}
+          initialTheme={theme}
+          resolver={resolver}
+        >
+          {children}
+        </DynamicThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### CSP Header Configuration
+
+Configure your CSP header to include the nonce:
+
+```
+Content-Security-Policy: style-src 'nonce-{random}';
+```
+
+Without nonce support, you would need `style-src 'unsafe-inline'` which is less secure.
+
+## What Data is Stored
+
+Livery only stores **theme identifiers** (e.g., `"light"`, `"dark"`, `"acme"`) when using persistence features.
+
+**Stored:**
+- Theme ID strings (e.g., `"acme"`, `"light"`, `"dark"`)
+
+**NOT Stored:**
+- User data
+- Theme colors or configuration values
+- Sensitive information
+
+This minimal storage footprint limits the impact of potential XSS attacks.
+
+## XSS Considerations
+
+If an XSS vulnerability exists in your application:
+
+**What attackers could do:**
+- Read the stored theme preference (theme ID only)
+- Modify the stored theme preference
+- Switch themes visually
+
+**What attackers cannot do:**
+- Access sensitive user data (Livery doesn't store any)
+- Execute JavaScript through theme values (all inputs validated)
+- Inject malicious CSS (values are escaped)
+
+**Impact:** Low severity - purely cosmetic changes possible.
+
+## Server-Side Security
+
+### Theme ID Validation
+
+Always validate theme IDs server-side before fetching theme data:
+
+```typescript
+const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => {
+    // Validate format (alphanumeric + hyphens only)
+    if (!/^[a-z0-9-]+$/i.test(themeId)) {
+      throw new Error('Invalid theme ID format');
+    }
+
+    // Check against allowlist if possible
+    const allowed = await db.themes.exists(themeId);
+    if (!allowed) {
+      throw new Error('Theme not found');
+    }
+
+    return db.themes.findById(themeId);
+  },
+});
+```
+
+### Tenant Isolation
+
+For multi-tenant applications, ensure themes are properly isolated:
+
+```typescript
+const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => {
+    const tenantId = getCurrentTenantId();
+
+    // Ensure theme belongs to current tenant
+    const theme = await db.themes.findOne({
+      id: themeId,
+      tenantId: tenantId,
+    });
+
+    if (!theme) {
+      throw new Error('Theme not found');
+    }
+
+    return theme.data;
+  },
+});
+```
+
+## Production Checklist
+
+1. **Use HTTPS** - Required for Secure cookie flag
+2. **Enable CSP** - Use nonce-based style injection
+3. **Validate theme IDs** - Server-side format and existence checks
+4. **Use SameSite=Strict** - If your app allows it
+5. **Tenant isolation** - Verify themes belong to the current tenant
+6. **Rate limiting** - Limit theme resolution requests
+
+## Minimal Attack Surface
+
+```tsx
+// Recommended: Use localStorage over cookies when possible
+<DynamicThemeProvider
+  persist="localStorage"  // Preferred
+  // persist="cookie"     // Only if cross-tab sync needed
+/>
+```
+
+## Defense in Depth
+
+Livery implements multiple security layers:
+
+```
+User/Tenant Input
+       |
++------------------+
+|  Theme ID Check  | <- Server validates theme belongs to tenant
++--------+---------+
+         |
++------------------+
+| Value Validation | <- Colors, URLs, dimensions validated
++--------+---------+
+         |
++------------------+
+|   CSS Escaping   | <- Special characters escaped
++--------+---------+
+         |
++------------------+
+| CSP Nonce Check  | <- Browser validates style origin
++--------+---------+
+         |
+    Safe Rendering
+```

@@ -1,0 +1,74 @@
+# Storage Adapters
+
+Learn how to persist themes in a database for multi-tenant applications, user preferences, and dynamic theming.
+
+## Why Store Themes?
+
+While static themes work great for simple use cases, database-backed themes enable:
+
+- **Multi-tenant branding** — Each customer gets their own theme
+- **User preferences** — Users customize and save their settings
+- **A/B testing** — Store theme variants and track performance
+- **Admin dashboards** — Non-developers can update themes
+- **Dynamic updates** — Change themes without redeploying
+
+## How It Works
+
+Livery's resolver pattern makes database integration straightforward:
+
+```typescript
+const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => {
+    // Fetch from any data source
+    const theme = await db.theme.findUnique({
+      where: { themeId },
+    });
+    return theme ?? {}; // Resolver merges with schema defaults
+  },
+  cache: {
+    ttl: 60 * 1000, // Cache for 1 minute
+  },
+});
+```
+
+## Caching Strategy
+
+Database calls add latency. Use Livery's built-in caching:
+
+| Strategy | TTL | Use Case |
+|----------|-----|----------|
+| Aggressive | 5-15 min | Themes rarely change |
+| Balanced | 1-5 min | Occasional updates |
+| Fresh | 10-30 sec | Frequent updates |
+| None | 0 | Real-time preview |
+
+For most applications, a 1-5 minute TTL provides the best balance.
+
+## Available Guides
+
+- [Prisma](/docs/storage/prisma) — Type-safe ORM, great DX
+- [Supabase](/docs/storage/supabase) — Postgres with real-time and RLS
+- [Drizzle ORM](/docs/storage/drizzle) — Lightweight, SQL-like syntax
+
+## Schema Design Tips
+
+1. **Separate table for themes** — Don't embed in user/tenant table
+2. **JSON column for tokens** — Flexible schema updates
+3. **Version field** — Track theme schema versions
+4. **Timestamps** — Know when themes were updated
+5. **Soft deletes** — Archive instead of delete
+
+```sql
+-- Recommended schema structure
+CREATE TABLE themes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  theme_id VARCHAR(255) UNIQUE NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  tokens JSONB NOT NULL,
+  version INTEGER DEFAULT 1,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+```

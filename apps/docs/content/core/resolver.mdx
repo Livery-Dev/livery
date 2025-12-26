@@ -1,0 +1,206 @@
+# Resolver
+
+The resolver fetches, caches, and validates theme data against your schema.
+
+## Why Use a Resolver?
+
+**Problem:** You need to load theme data from somewhere — an API, database, or static files. You also need caching, validation, and default value handling.
+
+**Solution:** The resolver handles all of this:
+- **Fetches** theme data from any source
+- **Caches** results with configurable TTL
+- **Validates** data against your schema
+- **Merges** default values for missing tokens
+
+## When Do You Need a Resolver?
+
+| Scenario | Do you need a resolver? |
+|----------|-------------------------|
+| Light/dark mode with bundled themes | **Yes** — even for static themes, the resolver provides validation and caching |
+| Themes from an API or database | **Yes** — use an async fetcher |
+| Multi-tenant with per-customer branding | **Yes** — resolve different themes per theme ID |
+| Single theme, never changes | **Optional** — you could use CSS utilities directly, but a resolver keeps things consistent |
+
+> **Note:** The `DynamicThemeProvider` requires a resolver. Even for simple cases, create a resolver with a static fetcher.
+
+## Creating a Resolver
+
+```typescript
+import { createResolver } from '@livery/core';
+
+const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => {
+    // Fetch theme data from any source
+    const response = await fetch(`/api/themes/${themeId}`);
+    return response.json();
+  },
+});
+```
+
+## Fetcher Function
+
+The fetcher receives a theme ID in an options object and returns theme data:
+
+```typescript
+// From an API
+fetcher: async ({ themeId }) => {
+  const res = await fetch(`/api/themes/${themeId}`);
+  return res.json();
+},
+
+// From a database
+fetcher: async ({ themeId }) => {
+  return await db.themes.findUnique({ where: { id: themeId } });
+},
+
+// From static data
+fetcher: ({ themeId }) => {
+  const themes = { light: {...}, dark: {...} };
+  return themes[themeId];
+},
+```
+
+## Resolving Themes
+
+```typescript
+// Async resolution
+const theme = await resolver.resolve({ themeId: 'theme-123' });
+
+// Get a specific value
+const primary = await resolver.get({ themeId: 'theme-123', path: 'colors.primary' });
+```
+
+## Caching
+
+The resolver includes built-in caching with stale-while-revalidate:
+
+```typescript
+const resolver = createResolver({
+  schema,
+  fetcher,
+  cache: {
+    ttl: 5 * 60 * 1000, // 5 minutes
+    staleWhileRevalidate: true,
+    maxSize: 100, // Max cached entries
+  },
+});
+```
+
+### Cache Methods
+
+```typescript
+// Invalidate a specific theme's cache
+resolver.invalidate({ themeId: 'theme-123' });
+
+// Clear entire cache
+resolver.clearCache();
+```
+
+### Stale-While-Revalidate
+
+When enabled, the resolver returns cached data immediately while fetching fresh data in the background:
+
+```typescript
+// First call - fetches from source
+await resolver.resolve({ themeId: 'theme-1' }); // ~200ms
+
+// Second call (within TTL) - returns cached
+await resolver.resolve({ themeId: 'theme-1' }); // ~1ms
+
+// Third call (after TTL) - returns stale, revalidates in background
+await resolver.resolve({ themeId: 'theme-1' }); // ~1ms, fresh data on next call
+```
+
+## Validation
+
+Theme data is automatically validated against your schema:
+
+```typescript
+const resolver = createResolver({
+  schema,
+  fetcher: async () => ({
+    colors: {
+      primary: 'not-a-color', // Invalid!
+    },
+  }),
+});
+
+await resolver.resolve({ themeId: 'theme-1' });
+// Throws: Invalid theme data for theme "theme-1": colors.primary: expected color
+```
+
+## Default Values
+
+Missing values are filled from token defaults:
+
+```typescript
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color().default('#14B8A6'),
+      secondary: t.color(), // No default
+    },
+  },
+});
+
+const resolver = createResolver({
+  schema,
+  fetcher: () => ({
+    colors: {
+      secondary: '#F59E0B',
+      // primary is missing
+    },
+  }),
+});
+
+const theme = await resolver.resolve({ themeId: 'theme-1' });
+// theme.colors.primary === '#14B8A6' (from default)
+// theme.colors.secondary === '#F59E0B' (from fetcher)
+```
+
+## Type Safety
+
+Resolved themes are fully typed:
+
+```typescript
+const theme = await resolver.resolve({ themeId: 'theme-1' });
+
+// TypeScript knows the shape
+theme.colors.primary; // string
+theme.typography.fontSize; // string
+theme.unknownProperty; // Error: Property does not exist
+```
+
+## API Reference
+
+### `createResolver(options)`
+
+```typescript
+function createResolver<T extends SchemaDefinition>(
+  options: CreateResolverOptions<T>
+): ThemeResolver<T>
+
+interface CreateResolverOptions<T> {
+  schema: Schema<T>;
+  fetcher: (params: { themeId: string }) => Promise<Partial<InferTheme<T>>> | Partial<InferTheme<T>>;
+  cache?: CacheConfig;
+}
+
+interface CacheConfig {
+  ttl?: number; // Time-to-live in ms (default: 5 minutes)
+  staleWhileRevalidate?: boolean; // Serve stale while fetching (default: true)
+  maxSize?: number; // Max cache entries (default: 100)
+}
+```
+
+### `ThemeResolver<T>`
+
+```typescript
+interface ThemeResolver<T> {
+  resolve(params: { themeId: string }): Promise<InferTheme<T>>;
+  get<P extends ThemePath<T>>(params: { themeId: string; path: P }): Promise<PathValue<T, P>>;
+  invalidate(params: { themeId: string }): void;
+  clearCache(): void;
+}
+```

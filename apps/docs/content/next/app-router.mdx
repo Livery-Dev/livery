@@ -1,0 +1,361 @@
+# App Router
+
+Server-side utilities for Next.js App Router.
+
+## getLiveryData
+
+Resolve theme data on the server for SSR and critical CSS injection.
+
+```tsx filename="app/layout.tsx"
+import { getLiveryData } from '@livery/next';
+import { LiveryScript } from '@livery/react/server';
+import { schema, resolver } from '@/lib/livery';
+
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { theme, css, themeId } = await getLiveryData({ themeId: 'default', 
+    schema,
+    resolver,
+  });
+
+  return (
+    <html>
+      <head>
+        <LiveryScript css={css} />
+      </head>
+      <body>
+        <Providers themeId={themeId} initialTheme={theme}>
+          {children}
+        </Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `themeId` | `string` | The theme identifier |
+| `options.schema` | `Schema<T>` | Your Livery schema |
+| `options.resolver` | `ThemeResolver<T>` | Theme resolver from `@livery/core` |
+| `options.cssOptions` | `CssVariableOptions` | Optional CSS customization |
+
+### Return Value
+
+```typescript
+interface LiveryData<T> {
+  theme: InferTheme<T>;   // Pre-resolved theme object
+  css: string;            // CSS variables string
+  themeId: string;       // Echoed theme ID
+}
+```
+
+### CSS Options
+
+Customize the generated CSS:
+
+```tsx
+const { css } = await getLiveryData({ themeId: 'default', 
+  schema,
+  resolver,
+  cssOptions: {
+    prefix: 'theme',      // Variable prefix: --theme-colors-primary
+    separator: '-',       // Path separator
+  },
+});
+```
+
+## getThemeFromHeaders
+
+Extract the theme ID from request headers (set by middleware).
+
+```tsx
+import { headers } from 'next/headers';
+import { getThemeFromHeaders } from '@livery/next';
+
+export default async function Page() {
+  const headersList = await headers();
+  const themeId = getThemeFromHeaders({ headers: headersList });
+
+  if (!themeId) {
+    redirect('/select-workspace');
+  }
+
+  return <Dashboard themeId={themeId} />;
+}
+```
+
+### Custom Header Name
+
+If you configured a custom theme header in middleware:
+
+```tsx
+const themeId = getThemeFromHeaders({ headers: headersList, headerName: 'x-my-theme' });
+```
+
+## getNonce
+
+Extract the CSP nonce from request headers for secure style injection.
+
+```tsx
+import { headers } from 'next/headers';
+import { getNonce, getLiveryData } from '@livery/next';
+import { LiveryScript } from '@livery/react/server';
+
+export default async function RootLayout({ children }) {
+  const headersList = await headers();
+  const nonce = getNonce({ headers: headersList });
+  const { css, theme } = await getLiveryData({ themeId: 'default', schema, resolver });
+
+  return (
+    <html>
+      <head>
+        <LiveryScript css={css} nonce={nonce} />
+      </head>
+      <body>
+        <DynamicThemeProvider
+          nonce={nonce}
+          initialThemeId="default"
+          initialTheme={theme}
+          resolver={resolver}
+        >
+          {children}
+        </DynamicThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### Custom Header Name
+
+If your nonce is in a different header:
+
+```tsx
+const nonce = getNonce({ headers: headersList, headerName: 'x-csp-nonce' });
+```
+
+### Setting Up CSP Nonce in Next.js
+
+Use middleware to generate and set a nonce:
+
+```typescript filename="middleware.ts"
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const response = NextResponse.next();
+
+  // Set nonce header for server components
+  response.headers.set('x-nonce', nonce);
+
+  // Set CSP header
+  response.headers.set(
+    'Content-Security-Policy',
+    `style-src 'nonce-${nonce}' 'self';`
+  );
+
+  return response;
+}
+```
+
+See the [Security](/docs/security) page for more details on CSP integration.
+
+## getCacheHeaders
+
+Generate appropriate cache headers for theme API responses.
+
+```typescript filename="app/api/theme/[theme]/route.ts"
+import { getCacheHeaders } from '@livery/next';
+import { resolver } from '@/lib/livery';
+
+export async function GET(
+  request: Request,
+  { params }: { params: { theme: string } }
+) {
+  const theme = await resolver.resolve({ themeId: params.theme });
+
+  return Response.json(theme, {
+    headers: getCacheHeaders({
+      maxAge: 300,                // Cache for 5 minutes
+      staleWhileRevalidate: 600, // Serve stale for 10 min while revalidating
+      scope: 'public',           // CDN-cacheable
+      vary: ['x-livery-theme'], // Vary by theme header
+    }),
+  });
+}
+```
+
+### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `maxAge` | `number` | `60` | Cache-Control max-age in seconds |
+| `staleWhileRevalidate` | `number` | `600` | Stale-while-revalidate duration |
+| `scope` | `'public' \| 'private'` | `'public'` | Cache scope |
+| `vary` | `string[]` | `['x-livery-theme']` | Vary headers |
+
+## Dynamic Segments
+
+Use dynamic route segments for theme-based routing.
+
+### Path-Based Themes
+
+```tsx filename="app/[themeId]/layout.tsx"
+import { getLiveryData } from '@livery/next';
+import { schema, resolver } from '@/lib/livery';
+
+interface LayoutProps {
+  children: React.ReactNode;
+  params: Promise<{ themeId: string }>;
+}
+
+export default async function ThemedLayout({ children, params }: LayoutProps) {
+  const { themeId } = await params;
+  const { theme, css } = await getLiveryData({ themeId, schema, resolver });
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: `:root { ${css} }` }} />
+      <Providers themeId={themeId} initialTheme={theme}>
+        {children}
+      </Providers>
+    </>
+  );
+}
+```
+
+### Generate Static Params
+
+Pre-generate pages for known themes:
+
+```tsx filename="app/[themeId]/page.tsx"
+export async function generateStaticParams() {
+  const themes = await db.themes.findAll();
+
+  return themes.map((theme) => ({
+    themeId: theme.id,
+  }));
+}
+```
+
+## Route Handlers
+
+Create theme API endpoints.
+
+### Get Theme
+
+```typescript filename="app/api/theme/[themeId]/route.ts"
+import { getCacheHeaders } from '@livery/next';
+import { resolver } from '@/lib/livery';
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ themeId: string }> }
+) {
+  const { themeId } = await params;
+
+  try {
+    const theme = await resolver.resolve({ themeId });
+
+    return Response.json(theme, {
+      headers: getCacheHeaders({ maxAge: 300 }),
+    });
+  } catch (error) {
+    return Response.json(
+      { error: 'Theme not found' },
+      { status: 404 }
+    );
+  }
+}
+```
+
+### Invalidate Cache
+
+```typescript filename="app/api/theme/[themeId]/invalidate/route.ts"
+import { revalidateTag } from 'next/cache';
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ themeId: string }> }
+) {
+  const { themeId } = await params;
+
+  // Invalidate cached theme
+  revalidateTag(`theme-${themeId}`);
+
+  return Response.json({ revalidated: true });
+}
+```
+
+## Caching Strategies
+
+### Request Memoization
+
+Use React's `cache` for request deduplication:
+
+```tsx
+import { cache } from 'react';
+import { getLiveryData } from '@livery/next';
+import { schema, resolver } from '@/lib/livery';
+
+const getThemeData = cache(async (themeId: string) => {
+  return getLiveryData({ themeId,  schema, resolver });
+});
+
+// Multiple calls in the same request are deduplicated
+const theme1 = await getThemeData('acme');
+const theme2 = await getThemeData('acme'); // Returns cached result
+```
+
+### Next.js Data Cache
+
+Use `unstable_cache` for persistent caching:
+
+```tsx
+import { unstable_cache } from 'next/cache';
+
+const getCachedTheme = unstable_cache(
+  async (themeId: string) => {
+    return resolver.resolve({ themeId: { themeId } });
+  },
+  ['theme'],
+  {
+    revalidate: 60,
+    tags: ['theme'],
+  }
+);
+```
+
+## Error Handling
+
+Handle theme resolution errors gracefully:
+
+```tsx
+import { getLiveryData } from '@livery/next';
+import { notFound } from 'next/navigation';
+
+export default async function Layout({ children, params }) {
+  try {
+    const { theme, css } = await getLiveryData({ themeId: params.theme, 
+      schema,
+      resolver,
+    });
+
+    return (
+      <Providers themeId={params.theme} initialTheme={theme}>
+        {children}
+      </Providers>
+    );
+  } catch (error) {
+    // Theme not found or resolution failed
+    notFound();
+  }
+}
+```

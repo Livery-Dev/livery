@@ -1,0 +1,191 @@
+# Static Themes in React
+
+Light/dark mode in React SPAs (Vite, CRA, etc.) with zero flash.
+
+import { Callout } from 'nextra/components'
+import { UsageMatrix } from '@/components/usage-matrix'
+
+<UsageMatrix highlight="csr-static" />
+
+<Callout>
+  **Have a server?** Use [Static Themes in Next.js](/docs/examples/nextjs-static-themes) instead — the server can set the theme before the page loads.
+</Callout>
+
+## How It Works
+
+1. All theme CSS is generated at build time with `toCssStringAll()`
+2. An init script runs before React to set `data-theme` from localStorage
+3. React hydrates with the correct theme already applied
+4. No flash — the init script beats React to the DOM
+
+## 1. Define Schema and Themes
+
+```typescript filename="src/lib/theme.ts"
+import { createSchema, t, toCssStringAll, type InferTheme } from '@livery/core';
+import { createStaticThemeProvider, getThemeInitScript } from '@livery/react';
+
+export const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      primaryHover: t.color(),
+      background: t.color(),
+      foreground: t.color(),
+      muted: t.color(),
+      border: t.color(),
+    },
+  },
+});
+
+type Theme = InferTheme<typeof schema.definition>;
+
+const light: Theme = {
+  colors: {
+    primary: '#14B8A6',
+    primaryHover: '#0D9488',
+    background: '#FFFFFF',
+    foreground: '#0F172A',
+    muted: '#64748B',
+    border: '#E2E8F0',
+  },
+};
+
+const dark: Theme = {
+  colors: {
+    primary: '#2DD4BF',
+    primaryHover: '#14B8A6',
+    background: '#0F172A',
+    foreground: '#F8FAFC',
+    muted: '#94A3B8',
+    border: '#334155',
+  },
+};
+
+// Generate CSS for ALL themes at once
+export const themesCss = toCssStringAll({
+  schema,
+  themes: { light, dark },
+  defaultTheme: 'light',
+});
+
+// Init script — runs before React, prevents flash
+export const themeInitScript = getThemeInitScript({
+  themes: ['light', 'dark'],
+  defaultTheme: 'light',
+});
+
+// Provider and hook
+export const { StaticThemeProvider, useTheme } = createStaticThemeProvider({
+  themes: ['light', 'dark'] as const,
+  defaultTheme: 'light',
+});
+```
+
+## 2. Inject CSS and Init Script
+
+The init script must run before React renders:
+
+```tsx filename="src/main.tsx"
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { themesCss, themeInitScript } from './lib/theme';
+import App from './App';
+import './styles.css';
+
+// Inject CSS and init script into <head>
+document.head.insertAdjacentHTML('afterbegin', `
+  <style>${themesCss}</style>
+  <script>${themeInitScript}</script>
+`);
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+```
+
+## 3. App Component
+
+```tsx filename="src/App.tsx"
+import { StaticThemeProvider, useTheme } from './lib/theme';
+
+function Header() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div className="header">
+      <h1>My App</h1>
+      <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+        {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+      </button>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <StaticThemeProvider>
+      <main>
+        <Header />
+        <p className="muted">Theme switching with zero flash.</p>
+      </main>
+    </StaticThemeProvider>
+  );
+}
+```
+
+## 4. Styles
+
+```css filename="src/styles.css"
+body {
+  background-color: var(--colors-background);
+  color: var(--colors-foreground);
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.muted {
+  color: var(--colors-muted);
+}
+
+button {
+  background-color: var(--colors-primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: var(--colors-primaryHover);
+}
+```
+
+## What the Init Script Does
+
+`getThemeInitScript()` generates a small script that:
+
+1. Checks localStorage for a saved theme
+2. Falls back to `prefers-color-scheme` system preference
+3. Sets `data-theme` on `<html>` immediately
+4. Runs synchronously before React hydrates
+
+This prevents the flash you'd get if React had to determine the theme.
+
+## Why This Works
+
+| Aspect | How |
+|--------|-----|
+| **No flash** | Init script sets theme before React renders |
+| **No runtime CSS** | All themes in one stylesheet via `toCssStringAll()` |
+| **Persistence** | localStorage by default, respects system preference |
+| **Type-safe** | Schema ensures themes match expected shape |

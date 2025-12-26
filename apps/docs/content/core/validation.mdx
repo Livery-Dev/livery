@@ -1,0 +1,228 @@
+# Validation
+
+Livery validates theme data against your schema to catch errors early.
+
+## Why Use Validation?
+
+**Problem:** Theme data from external sources (APIs, databases, user input) might be malformed, incomplete, or have wrong types. You need to catch these issues before they break your UI.
+
+**Solution:** Validation functions check data against your schema and report errors clearly.
+
+## Which Function Should I Use?
+
+| Function | Use when... |
+|----------|-------------|
+| `validate()` | You have complete theme data and want strict validation. Any missing required fields are errors. |
+| `validatePartial()` | You have incomplete data (e.g., a theme update that only changes some values). Missing fields are OK. |
+| `coerce()` | You want validation + automatic filling of default values. Best for preparing data for use. |
+
+> **Tip:** In most cases, you don't call these directly. The resolver uses `coerce()` internally when resolving themes. Use these functions when building admin tools, import features, or custom validation flows.
+
+## When to Use Validation Directly
+
+| Scenario | Recommendation |
+|----------|----------------|
+| Resolving themes in DynamicThemeProvider | **Don't** — the resolver validates automatically |
+| Building a theme editor | **Use `validatePartial()`** — validate changes before saving |
+| Importing themes from JSON | **Use `validate()`** — ensure imported data is complete |
+| API endpoint receiving theme data | **Use `coerce()`** — validate and fill defaults before storing |
+
+## Validate Function
+
+Use `validate` to check if data matches your schema:
+
+```typescript
+import { validate } from '@livery/core';
+
+const result = validate({
+  schema,
+  data: {
+    colors: {
+      primary: '#14B8A6',
+      background: '#FFFFFF',
+    },
+  },
+});
+
+if (result.success) {
+  console.log('Valid theme:', result.data);
+} else {
+  console.error('Validation errors:', result.errors);
+}
+```
+
+## Validation Result
+
+```typescript
+// Success
+{
+  success: true,
+  data: { colors: { primary: '#14B8A6', ... } }
+}
+
+// Failure
+{
+  success: false,
+  errors: [
+    {
+      path: 'colors.primary',
+      message: 'expected color, received number',
+      expected: 'color',
+      received: 123
+    }
+  ]
+}
+```
+
+## Partial Validation
+
+Use `validatePartial` for incomplete theme data:
+
+```typescript
+import { validatePartial } from '@livery/core';
+
+// Only validates provided values, doesn't require all fields
+const result = validatePartial({
+  schema,
+  data: {
+    colors: {
+      primary: '#14B8A6',
+      // background is not provided, but that's OK
+    },
+  },
+});
+```
+
+## Coercion
+
+Use `coerce` to validate and transform data:
+
+```typescript
+import { coerce } from '@livery/core';
+
+const result = coerce({
+  schema,
+  data: {
+    colors: {
+      primary: '#14B8A6',
+    },
+  },
+});
+
+if (result.success) {
+  // result.data has defaults filled in
+  console.log(result.data.colors.background); // From default
+}
+```
+
+## Type Checking
+
+Each token type has specific validation rules:
+
+### Color
+
+Valid: `#fff`, `#ffffff`, `rgb(255, 255, 255)`, `rgba(...)`, `hsl(...)`, `transparent`, named colors
+
+```typescript
+// Valid
+colors: { primary: '#14B8A6' }
+colors: { primary: 'rgb(20, 184, 166)' }
+colors: { primary: 'transparent' }
+
+// Invalid
+colors: { primary: 123 }
+colors: { primary: 'not-a-color' }
+```
+
+### Dimension
+
+Valid: Any string with a CSS unit (px, rem, em, %, vh, vw, etc.)
+
+```typescript
+// Valid
+spacing: { md: '16px' }
+spacing: { md: '1rem' }
+spacing: { md: '50%' }
+
+// Invalid
+spacing: { md: 16 } // Missing unit
+spacing: { md: 'large' } // Not a dimension
+```
+
+### Number
+
+Valid: Any numeric value
+
+```typescript
+// Valid
+opacity: { full: 1 }
+opacity: { half: 0.5 }
+
+// Invalid
+opacity: { full: '1' } // String, not number
+```
+
+## Error Messages
+
+Validation errors include helpful context:
+
+```typescript
+{
+  path: 'colors.brand.primary',
+  message: 'expected color, received undefined',
+  expected: 'color',
+  received: undefined
+}
+```
+
+## API Reference
+
+### `validate(options)`
+
+Validates complete theme data:
+
+```typescript
+function validate<T extends SchemaDefinition>(
+  options: ValidateOptions<T>
+): ValidationResult<InferTheme<T>>
+
+interface ValidateOptions<T> {
+  schema: Schema<T>;
+  data: unknown;
+}
+```
+
+### `validatePartial(options)`
+
+Validates partial theme data:
+
+```typescript
+function validatePartial<T extends SchemaDefinition>(
+  options: ValidateOptions<T>
+): ValidationResult<Partial<InferTheme<T>>>
+```
+
+### `coerce(options)`
+
+Validates and fills in defaults:
+
+```typescript
+function coerce<T extends SchemaDefinition>(
+  options: ValidateOptions<T>
+): ValidationResult<InferTheme<T>>
+```
+
+### `ValidationResult<T>`
+
+```typescript
+type ValidationResult<T> =
+  | { success: true; data: T }
+  | { success: false; errors: ValidationError[] }
+
+interface ValidationError {
+  path: string;
+  message: string;
+  expected: TokenType;
+  received: unknown;
+}
+```

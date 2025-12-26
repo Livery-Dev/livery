@@ -1,0 +1,286 @@
+# Hooks
+
+Livery provides hooks for accessing theme data directly in JavaScript.
+
+## Should I Use Hooks or CSS Variables?
+
+**Short answer:** Use CSS variables for styling. Use hooks only when you need values in JavaScript.
+
+| I want to... | Use |
+|--------------|-----|
+| Style components with theme colors | **CSS variables** via Tailwind or vanilla CSS |
+| Change background/text colors | **CSS variables** — `bg-primary`, `text-foreground` |
+| Draw on a canvas with theme colors | **Hooks** — `useThemeValue('colors.primary')` |
+| Configure a chart library | **Hooks** — libraries need JS values |
+| Conditionally render based on theme | **Hooks** — `useTheme()` for state |
+| Check if theme is ready | **Hooks** — `useThemeReady()` |
+
+### Why CSS Variables Are Better for Styling
+
+```tsx
+// GOOD: CSS variables - no JS, works with SSR
+<button className="bg-primary text-white">Click</button>
+
+// AVOID: Hooks for styling - requires JS, can flash
+function Button() {
+  const primary = useThemeValue('colors.primary');
+  return <button style={{ backgroundColor: primary }}>Click</button>;
+}
+```
+
+CSS variables:
+- Work immediately (no hydration delay)
+- Are more performant (no React re-renders)
+- Support CSS features (hover, media queries, transitions)
+
+## When to Use Each Hook
+
+| Hook | Use when... |
+|------|-------------|
+| `useTheme()` | You need the full theme object, loading state, or `setThemeId` |
+| `useThemeValue(path)` | You need a single value in JavaScript |
+| `useThemeReady()` | You want to show a loading state until theme is ready |
+
+> **Tip:** Most apps only need `useTheme()` for theme switching. CSS variables handle everything else.
+
+## useTheme
+
+The main hook for accessing the full theme context:
+
+```tsx
+import { useTheme } from '@/lib/livery';
+
+function ThemeStatus() {
+  const {
+    theme,       // The resolved theme object (null if not ready)
+    state,       // State machine: { status: 'idle' | 'loading' | 'ready' | 'error', ... }
+    themeId,    // Current theme ID
+    cssVariables, // CSS variables as key-value object
+    refresh,     // Function to manually refresh the theme
+
+    // Convenience booleans
+    isIdle,      // state.status === 'idle'
+    isLoading,   // state.status === 'loading'
+    isReady,     // state.status === 'ready'
+    isError,     // state.status === 'error'
+    error,       // Error object if isError, otherwise null
+  } = useTheme();
+
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error: {error.message}</div>;
+  if (!theme) return null;
+
+  return (
+    <div style={{ color: theme.colors.text }}>
+      Theme: {themeId}
+    </div>
+  );
+}
+```
+
+### State Machine
+
+The state follows a predictable pattern:
+
+```typescript
+// Initial state
+{ status: 'idle' }
+
+// While fetching
+{ status: 'loading' }
+
+// Success
+{ status: 'ready', theme: { ... } }
+
+// Failure
+{ status: 'error', error: Error }
+```
+
+### Refreshing
+
+Manually refresh the theme (useful for real-time updates):
+
+```tsx
+function RefreshButton() {
+  const { refresh, isLoading } = useTheme();
+
+  return (
+    <button onClick={refresh} disabled={isLoading}>
+      {isLoading ? 'Refreshing...' : 'Refresh Theme'}
+    </button>
+  );
+}
+```
+
+## useThemeValue
+
+Get a single theme value by path with full type inference:
+
+```tsx
+import { useThemeValue } from '@/lib/livery';
+
+function Button({ children }) {
+  // Path autocomplete works!
+  const primary = useThemeValue('colors.primary');
+  const fontFamily = useThemeValue('typography.fontFamily');
+  const borderRadius = useThemeValue('borderRadius.md');
+
+  return (
+    <button
+      style={{
+        backgroundColor: primary,
+        fontFamily,
+        borderRadius,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+```
+
+### Type Safety
+
+TypeScript ensures you use valid paths:
+
+```tsx
+// ✓ Valid paths
+useThemeValue('colors.primary');
+useThemeValue('typography.fontSize.md');
+
+// ✗ TypeScript errors
+useThemeValue('colors.unknown');
+useThemeValue('invalid.path');
+```
+
+### Return Type
+
+The return type is inferred from the token type:
+
+```tsx
+const color = useThemeValue('colors.primary');     // string
+const fontSize = useThemeValue('typography.size'); // string
+const opacity = useThemeValue('opacity.full');     // number (if defined as t.number())
+```
+
+## useThemeReady
+
+Simple boolean hook for checking if the theme is ready:
+
+```tsx
+import { useThemeReady } from '@/lib/livery';
+
+function ConditionalContent() {
+  const isReady = useThemeReady();
+
+  if (!isReady) {
+    return <Skeleton />;
+  }
+
+  return <ThemedContent />;
+}
+```
+
+## Using with Suspense
+
+Wrap components that use theme hooks in Suspense boundaries:
+
+```tsx
+import { Suspense } from 'react';
+
+function App() {
+  return (
+    <DynamicThemeProvider initialThemeId="default" resolver={resolver}>
+      <Suspense fallback={<Loading />}>
+        <ThemedContent />
+      </Suspense>
+    </DynamicThemeProvider>
+  );
+}
+```
+
+## Common Patterns
+
+### Themed Component
+
+```tsx
+function Card({ children }) {
+  const background = useThemeValue('colors.surface');
+  const border = useThemeValue('colors.border');
+  const shadow = useThemeValue('shadows.md');
+
+  return (
+    <div
+      style={{
+        background,
+        border: `1px solid ${border}`,
+        boxShadow: shadow,
+        borderRadius: '8px',
+        padding: '16px',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+### Loading State
+
+```tsx
+function ThemedPage() {
+  const { theme, isLoading, isError, error } = useTheme();
+
+  if (isLoading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (isError) {
+    return <ErrorMessage error={error} />;
+  }
+
+  return (
+    <div style={{ background: theme.colors.background }}>
+      <Header />
+      <Content />
+      <Footer />
+    </div>
+  );
+}
+```
+
+### Multiple Values
+
+```tsx
+function StyledButton() {
+  const { theme, isReady } = useTheme();
+
+  if (!isReady || !theme) return null;
+
+  const { colors, typography, spacing, borderRadius } = theme;
+
+  return (
+    <button
+      style={{
+        backgroundColor: colors.primary,
+        color: colors.textInverse,
+        fontFamily: typography.fontFamily.sans,
+        fontSize: typography.fontSize.base,
+        padding: `${spacing.sm} ${spacing.md}`,
+        borderRadius: borderRadius.md,
+        border: 'none',
+      }}
+    >
+      Click me
+    </button>
+  );
+}
+```
+
+## Rules of Hooks
+
+Like all React hooks, Livery hooks must follow the [Rules of Hooks](https://react.dev/reference/rules/rules-of-hooks):
+
+- Only call hooks at the top level
+- Only call hooks from React function components or custom hooks
+- Hooks must be called in the same order on every render

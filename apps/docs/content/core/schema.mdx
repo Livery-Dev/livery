@@ -1,0 +1,283 @@
+# Schema
+
+A schema defines the structure and types of your theme. It's the foundation of Livery's type safety.
+
+## Why Use a Schema?
+
+**Problem:** Without a schema, theme objects are just loosely-typed data. You might misspell `colors.primry`, forget required values, or pass the wrong types — and only discover it at runtime.
+
+**Solution:** A schema gives you:
+- **TypeScript inference** — IDE autocomplete and compile-time errors
+- **Runtime validation** — Catch invalid theme data before it breaks your UI
+- **Default values** — Ensure themes are always complete
+- **Documentation** — Describe what each token is for
+
+## When to Define Your Schema
+
+| Scenario | Recommendation |
+|----------|----------------|
+| Starting a new project | Define your schema first, then create themes against it |
+| Adding theming to existing app | Create a schema that matches your current design tokens |
+| Using a component library (shadcn, etc.) | Match your schema to the library's expected variables |
+| Building a multi-tenant product | Define a schema that covers all possible tenant customizations |
+
+## Creating a Schema
+
+Use `createSchema` with the `t` token builders to define your schema:
+
+```typescript
+import { createSchema, t } from '@livery/core';
+
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      secondary: t.color(),
+      background: t.color(),
+      text: t.color(),
+    },
+    typography: {
+      fontFamily: t.fontFamily(),
+      fontSize: {
+        sm: t.dimension(),
+        md: t.dimension(),
+        lg: t.dimension(),
+      },
+    },
+    spacing: {
+      xs: t.dimension(),
+      sm: t.dimension(),
+      md: t.dimension(),
+      lg: t.dimension(),
+      xl: t.dimension(),
+    },
+  },
+});
+```
+
+## Nested Groups
+
+Schemas can be nested to any depth:
+
+```typescript
+const schema = createSchema({
+  definition: {
+    colors: {
+      brand: {
+        primary: t.color(),
+        secondary: t.color(),
+      },
+      ui: {
+        background: t.color(),
+        surface: t.color(),
+        border: t.color(),
+      },
+      text: {
+        primary: t.color(),
+        secondary: t.color(),
+        muted: t.color(),
+      },
+    },
+  },
+});
+```
+
+Theme paths use dot notation: `colors.brand.primary`, `colors.ui.background`, etc.
+
+## Token Metadata
+
+Add descriptions and default values to tokens:
+
+```typescript
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color()
+        .describe('Primary brand color used for CTAs')
+        .default('#14B8A6'),
+      background: t.color()
+        .describe('Main page background')
+        .default('#FFFFFF'),
+    },
+  },
+});
+```
+
+Descriptions are useful for documentation and the Livery Dashboard. Default values are used when a theme doesn't specify a value.
+
+## Type Inference
+
+TypeScript automatically infers the theme type from your schema:
+
+```typescript
+import { type InferTheme } from '@livery/core';
+
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+    },
+  },
+});
+
+// Infer the theme type
+type Theme = InferTheme<typeof schema.definition>;
+// { colors: { primary: string } }
+```
+
+## Schema Validation
+
+Schemas are validated at creation time. Invalid schemas throw errors:
+
+```typescript
+// This would throw an error - 'invalid' is not a valid token type
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: { type: 'invalid' }, // Error!
+    },
+  },
+});
+```
+
+## Best Practices
+
+### Organize by Category
+
+Group related tokens together:
+
+```typescript
+const schema = createSchema({
+  definition: {
+    colors: { /* ... */ },
+    typography: { /* ... */ },
+    spacing: { /* ... */ },
+    borders: { /* ... */ },
+    shadows: { /* ... */ },
+  },
+});
+```
+
+### Use Semantic Names
+
+Name tokens by their purpose, not their value:
+
+```typescript
+// Good
+colors: {
+  primary: t.color(),
+  success: t.color(),
+  error: t.color(),
+}
+
+// Avoid
+colors: {
+  blue: t.color(),
+  green: t.color(),
+  red: t.color(),
+}
+```
+
+### Keep Schemas Flat-ish
+
+Deep nesting makes paths long. 2-3 levels is usually enough:
+
+```typescript
+// Good: 2 levels
+colors.text.primary
+
+// Avoid: 4+ levels
+colors.semantic.ui.text.primary.default
+```
+
+## Schema Utilities
+
+Livery provides utility functions for introspecting schemas. These are useful for building tools, debugging, or dynamic schema manipulation.
+
+### getTokenPaths
+
+Get all token paths from a schema definition:
+
+```typescript
+import { getTokenPaths } from '@livery/core';
+
+const paths = getTokenPaths({ definition: schema.definition });
+// ['colors.primary', 'colors.background', 'spacing.md', ...]
+```
+
+### getTokenAtPath
+
+Get the token definition at a specific path:
+
+```typescript
+import { getTokenAtPath } from '@livery/core';
+
+const token = getTokenAtPath({
+  definition: schema.definition,
+  path: 'colors.primary',
+});
+// { type: 'color', defaultValue: '#14B8A6', description: '...' }
+```
+
+Returns `undefined` if the path doesn't exist or doesn't point to a token.
+
+### Type Guards
+
+Check if a value is a token, schema definition, or schema:
+
+```typescript
+import { isTokenDefinition, isSchemaDefinition, isSchema } from '@livery/core';
+
+// Check if a value is a token definition
+isTokenDefinition({ type: 'color' }); // true
+isTokenDefinition({ primary: t.color() }); // false
+
+// Check if a value is a schema definition (nested group)
+isSchemaDefinition({ primary: t.color() }); // true
+isSchemaDefinition({ type: 'color' }); // false
+
+// Check if a value is a schema created by createSchema()
+isSchema(schema); // true
+isSchema({ definition: {} }); // false
+```
+
+## API Reference
+
+### `createSchema(options)`
+
+Creates a validated schema from a definition.
+
+```typescript
+function createSchema<T extends SchemaDefinition>(
+  options: { definition: T }
+): Schema<T>
+```
+
+### `getTokenPaths(options)`
+
+Gets all token paths from a schema definition.
+
+```typescript
+function getTokenPaths(options: {
+  definition: SchemaDefinition;
+  prefix?: string;
+}): string[]
+```
+
+### `getTokenAtPath(options)`
+
+Gets a token definition at a specific path.
+
+```typescript
+function getTokenAtPath(options: {
+  definition: SchemaDefinition;
+  path: string;
+}): TokenDefinition | undefined
+```
+
+### `Schema<T>`
+
+The schema type. Contains:
+- `definition` — The original schema definition
+
+See [Token Types](/docs/core/tokens) for available token builders.

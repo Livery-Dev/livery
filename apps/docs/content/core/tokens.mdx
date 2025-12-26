@@ -1,0 +1,257 @@
+# Token Types
+
+Livery supports various token types for different kinds of design values.
+
+## Choosing the Right Token Type
+
+Each token type provides appropriate validation and type inference. Use the right type to catch errors early:
+
+| I want to store... | Use | Why |
+|-------------------|-----|-----|
+| Colors (hex, rgb, hsl) | `t.color()` | Validates color formats |
+| Sizes with units (px, rem, %) | `t.dimension()` | Ensures units are included |
+| Numeric values (opacity, z-index) | `t.number()` | TypeScript infers `number` type |
+| Text content (labels, names) | `t.string()` | For arbitrary strings |
+| Feature flags | `t.boolean()` | TypeScript infers `boolean` type |
+| Font stacks | `t.fontFamily()` | Semantic clarity for typography |
+| Font weights (400, 700, bold) | `t.fontWeight()` | Accepts numbers or keywords |
+| Box/text shadows | `t.shadow()` | For complex shadow values |
+| Asset URLs (images, fonts) | `t.url()` | For URLs and paths |
+
+> **Tip:** When in doubt, use `t.string()`. But prefer specific types when possible — they provide better validation and documentation.
+
+## Available Token Types
+
+| Type | Builder | Value Type | Description |
+|------|---------|------------|-------------|
+| Color | `t.color()` | `string` | Any valid CSS color |
+| Dimension | `t.dimension()` | `string` | Values with units (px, rem, etc.) |
+| Number | `t.number()` | `number` | Numeric values |
+| String | `t.string()` | `string` | Arbitrary strings |
+| Boolean | `t.boolean()` | `boolean` | True/false values |
+| Font Family | `t.fontFamily()` | `string` | Font stack strings |
+| Font Weight | `t.fontWeight()` | `string \| number` | Font weight values |
+| Shadow | `t.shadow()` | `string` | CSS shadow values |
+| URL | `t.url()` | `string` | URL values |
+
+## Color Token
+
+For any CSS color value (hex, rgb, hsl, named colors, etc.):
+
+```typescript
+import { createSchema, t, type InferTheme } from '@livery/core';
+
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      secondary: t.color().default('#F59E0B'),
+      transparent: t.color().default('transparent'),
+    },
+  },
+});
+
+// Type-safe theme values
+type Theme = InferTheme<typeof schema.definition>;
+
+const theme: Theme = {
+  colors: {
+    primary: '#14B8A6',
+    secondary: '#F59E0B',
+    transparent: 'rgba(0, 0, 0, 0.5)',
+  },
+};
+```
+
+## Dimension Token
+
+For values with CSS units (px, rem, em, %, vh, vw, etc.):
+
+```typescript
+import { createSchema, t, type InferTheme } from '@livery/core';
+
+const schema = createSchema({
+  definition: {
+    spacing: {
+      sm: t.dimension().default('8px'),
+      md: t.dimension().default('16px'),
+      lg: t.dimension().default('24px'),
+    },
+    borderRadius: {
+      sm: t.dimension().default('4px'),
+      full: t.dimension().default('9999px'),
+    },
+  },
+});
+
+// Type-safe theme values
+type Theme = InferTheme<typeof schema.definition>;
+
+const theme: Theme = {
+  spacing: {
+    sm: '0.5rem',
+    md: '1rem',
+    lg: '1.5rem',
+  },
+  borderRadius: {
+    sm: '0.25rem',
+    full: '9999px',
+  },
+};
+```
+
+## Number Token
+
+For numeric values without units:
+
+```typescript
+const schema = createSchema({
+  definition: {
+    opacity: {
+      subtle: t.number().default(0.5),
+      full: t.number().default(1),
+    },
+    zIndex: {
+      dropdown: t.number().default(100),
+      modal: t.number().default(200),
+    },
+  },
+});
+```
+
+## String Token
+
+For arbitrary string values:
+
+```typescript
+const schema = createSchema({
+  definition: {
+    branding: {
+      companyName: t.string().default('Acme Inc'),
+      tagline: t.string(),
+    },
+  },
+});
+```
+
+## Boolean Token
+
+For true/false feature flags:
+
+```typescript
+const schema = createSchema({
+  definition: {
+    features: {
+      roundedCorners: t.boolean().default(true),
+      animations: t.boolean().default(true),
+    },
+  },
+});
+```
+
+## Font Family Token
+
+For font stack strings:
+
+```typescript
+const schema = createSchema({
+  definition: {
+    fonts: {
+      sans: t.fontFamily().default('Inter, system-ui, sans-serif'),
+      mono: t.fontFamily().default('JetBrains Mono, monospace'),
+      serif: t.fontFamily().default('Georgia, serif'),
+    },
+  },
+});
+```
+
+## Font Weight Token
+
+For font weight values (numeric or keywords):
+
+```typescript
+const schema = createSchema({
+  definition: {
+    fontWeight: {
+      normal: t.fontWeight().default(400),
+      medium: t.fontWeight().default(500),
+      bold: t.fontWeight().default(700),
+    },
+  },
+});
+```
+
+## Shadow Token
+
+For CSS box-shadow or text-shadow values:
+
+```typescript
+const schema = createSchema({
+  definition: {
+    shadows: {
+      sm: t.shadow().default('0 1px 2px 0 rgb(0 0 0 / 0.05)'),
+      md: t.shadow().default('0 4px 6px -1px rgb(0 0 0 / 0.1)'),
+      lg: t.shadow().default('0 10px 15px -3px rgb(0 0 0 / 0.1)'),
+    },
+  },
+});
+```
+
+## URL Token
+
+For URL values (images, fonts, etc.):
+
+```typescript
+import { createSchema, t, type InferTheme } from '@livery/core';
+
+const schema = createSchema({
+  definition: {
+    assets: {
+      logo: t.url(),
+      favicon: t.url(),
+      backgroundImage: t.url(),
+    },
+  },
+});
+
+// Type-safe theme values
+type Theme = InferTheme<typeof schema.definition>;
+
+const theme: Theme = {
+  assets: {
+    logo: 'https://example.com/logo.svg',
+    favicon: '/favicon.ico',
+    backgroundImage: 'https://example.com/bg.jpg',
+  },
+};
+```
+
+## Token Builder Methods
+
+All token builders support these methods:
+
+### `.describe(text)`
+
+Adds a description for documentation:
+
+```typescript
+t.color().describe('Primary brand color for CTAs and links')
+```
+
+### `.default(value)`
+
+Sets a default value used when theme doesn't specify one:
+
+```typescript
+t.color().default('#14B8A6')
+```
+
+### Chaining
+
+Methods can be chained:
+
+```typescript
+t.color()
+  .describe('Background color for the main content area')
+  .default('#FFFFFF')
+```

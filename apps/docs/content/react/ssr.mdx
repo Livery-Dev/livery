@@ -1,0 +1,344 @@
+# Server-Side Rendering
+
+Livery supports server-side rendering (SSR) and static generation in Next.js and other React frameworks.
+
+## The Challenge
+
+SSR presents a unique challenge: the theme must be resolved on the server to avoid hydration mismatches and flashes of unstyled content.
+
+```tsx
+// Problem: Client and server may render different content
+function Component() {
+  const { theme } = useTheme(); // undefined on first server render
+  return <div style={{ color: theme?.colors.primary }}>Hello</div>;
+}
+```
+
+## Server Utilities
+
+For non-Next.js frameworks, use `@livery/react/server`:
+
+```typescript
+import { getLiveryServerProps, LiveryScript } from '@livery/react/server';
+```
+
+> **Note:** For Next.js App Router, use `@livery/next` which provides `getLiveryData()`.
+
+### getLiveryServerProps
+
+Resolves theme and generates CSS on the server:
+
+```typescript
+import { getLiveryServerProps } from '@livery/react/server';
+
+const { initialTheme, css, themeId } = await getLiveryServerProps({
+  schema,
+  themeId: 'acme',
+  resolver,
+  cssOptions: { prefix: 'theme' }, // Optional
+});
+
+// Returns:
+// {
+//   initialTheme: { colors: { ... }, ... },
+//   css: ':root { --colors-primary: #14B8A6; ... }',
+//   themeId: 'acme'
+// }
+```
+
+### LiveryScript
+
+Injects the CSS into a `<style>` tag. Place it in your document head:
+
+```tsx
+import { LiveryScript } from '@livery/react/server';
+
+<head>
+  <LiveryScript css={css} />
+</head>
+```
+
+### Full Example (Remix, Vite SSR, etc.)
+
+```tsx
+import { getLiveryServerProps, LiveryScript } from '@livery/react/server';
+
+// Server: loader or getServerSideProps equivalent
+export async function loader({ params }) {
+  const liveryProps = await getLiveryServerProps({
+    schema,
+    themeId: params.theme ?? 'default',
+    resolver,
+  });
+
+  return { liveryProps };
+}
+
+// Client: Page component
+export default function Page({ liveryProps }) {
+  return (
+    <html>
+      <head>
+        <LiveryScript css={liveryProps.css} />
+      </head>
+      <body>
+        <DynamicThemeProvider
+          themeId={liveryProps.themeId}
+          resolver={resolver}
+          initialTheme={liveryProps.initialTheme}
+        >
+          <App />
+        </DynamicThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+## Solutions
+
+### 1. Pre-resolve Theme on Server
+
+Resolve the theme on the server and pass it to the provider:
+
+```tsx filename="app/layout.tsx"
+import { resolver } from '@/lib/livery';
+import { Providers } from '@/components/Providers';
+
+export default async function RootLayout({ children }) {
+  // Resolve theme on the server
+  const initialTheme = await resolver.resolve({ themeId: 'default' });
+
+  return (
+    <html>
+      <body>
+        <Providers themeId="default" initialTheme={initialTheme}>
+          {children}
+        </Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+```tsx filename="components/Providers.tsx"
+'use client';
+
+import { DynamicThemeProvider, resolver } from '@/lib/livery';
+
+export function Providers({ children, themeId, initialTheme }) {
+  return (
+    <DynamicThemeProvider
+      themeId={themeId}
+      resolver={resolver}
+      initialTheme={initialTheme}
+    >
+      {children}
+    </DynamicThemeProvider>
+  );
+}
+```
+
+### 2. Use CSS Variables
+
+CSS variables work with SSR because they're computed at render time:
+
+```tsx filename="app/layout.tsx"
+import { toCssString } from '@livery/core';
+import { LiveryScript } from '@livery/react/server';
+import { schema, resolver } from '@/lib/livery';
+
+export default async function RootLayout({ children }) {
+  const theme = await resolver.resolve({ themeId: 'default' });
+  const css = toCssString({ schema, theme });
+
+  return (
+    <html>
+      <head>
+        <LiveryScript css={css} />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+Components can safely use CSS variables:
+
+```css
+.button {
+  background-color: var(--colors-primary);
+  color: var(--colors-text);
+}
+```
+
+### 3. Suspense Boundaries
+
+Wrap theme-dependent components in Suspense:
+
+```tsx
+import { Suspense } from 'react';
+
+function App() {
+  return (
+    <DynamicThemeProvider initialThemeId="default" resolver={resolver}>
+      <Suspense fallback={<LoadingSkeleton />}>
+        <ThemedContent />
+      </Suspense>
+    </DynamicThemeProvider>
+  );
+}
+```
+
+## Hydration
+
+### Preventing Mismatches
+
+The `initialTheme` prop ensures the server and client render the same content:
+
+```tsx
+<DynamicThemeProvider
+  themeId="default"
+  resolver={resolver}
+  initialTheme={serverResolvedTheme} // Same theme used on server
+>
+```
+
+### suppressHydrationWarning
+
+For dynamic theme values that may differ between server and client:
+
+```tsx
+<html lang="en" suppressHydrationWarning>
+  <body>{children}</body>
+</html>
+```
+
+## Static Generation
+
+For statically generated pages, resolve themes at build time:
+
+```tsx filename="app/[theme]/page.tsx"
+import { resolver } from '@/lib/livery';
+
+// Generate pages for each theme
+export async function generateStaticParams() {
+  return [
+    { themeId: 'default' },
+    { themeId: 'dark' },
+    { themeId: 'ocean' },
+  ];
+}
+
+export default async function ThemePage({ params }) {
+  const theme = await resolver.resolve({ themeId: params.themeId });
+
+  return (
+    <Providers themeId={params.themeId} initialTheme={theme}>
+      <PageContent />
+    </Providers>
+  );
+}
+```
+
+## Loading States
+
+Handle the loading state gracefully:
+
+```tsx
+function ThemedContent() {
+  const { theme, isLoading, isReady } = useTheme();
+
+  // Show skeleton while loading
+  if (isLoading || !isReady) {
+    return <ContentSkeleton />;
+  }
+
+  return (
+    <div style={{ background: theme.colors.background }}>
+      <Content />
+    </div>
+  );
+}
+```
+
+### Skeleton Components
+
+Create skeleton components that match your themed layouts:
+
+```tsx
+function ContentSkeleton() {
+  return (
+    <div className="animate-pulse">
+      <div className="h-8 bg-gray-200 rounded w-3/4 mb-4" />
+      <div className="h-4 bg-gray-200 rounded w-full mb-2" />
+      <div className="h-4 bg-gray-200 rounded w-5/6" />
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+### 1. Resolve Early
+
+Resolve the theme as early as possible in your component tree:
+
+```tsx
+// Good: Resolve in root layout
+export default async function RootLayout({ children }) {
+  const theme = await resolver.resolve({ themeId: 'default' });
+  return <Providers initialTheme={theme}>{children}</Providers>;
+}
+
+// Avoid: Resolving in deeply nested components
+function DeepComponent() {
+  const { theme } = useTheme(); // May cause hydration issues
+}
+```
+
+### 2. Use Fallback UI
+
+Always provide a fallback for loading states:
+
+```tsx
+<DynamicThemeProvider
+  themeId="default"
+  resolver={resolver}
+  fallback={<AppSkeleton />}
+>
+  {children}
+</DynamicThemeProvider>
+```
+
+### 3. Cache Theme Resolution
+
+Cache resolved themes to improve performance:
+
+```tsx
+import { cache } from 'react';
+
+const getTheme = cache(async (themeId: string) => {
+  return resolver.resolve({ themeId: { themeId } });
+});
+
+// Use in server components
+const theme = await getTheme('default');
+```
+
+### 4. Avoid Theme-Dependent Layout Shifts
+
+Use CSS variables for properties that affect layout:
+
+```css
+.container {
+  padding: var(--spacing-md);
+  max-width: var(--layout-maxWidth);
+}
+```
+
+## Framework-Specific Guides
+
+- [Next.js SSR](/docs/next/ssr) — Full Next.js integration guide
+- [Remix](/docs/integrations/remix) — Remix SSR setup
+

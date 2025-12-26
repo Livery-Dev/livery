@@ -1,0 +1,191 @@
+# @livery/react
+
+React bindings for Livery, providing context, hooks, and automatic CSS variable injection.
+
+## When to Use This Package
+
+**Use `@livery/react` when:**
+- Building a React application (non-Next.js)
+- Using Create React App, Vite, Remix, or similar
+
+**Use `@livery/next` instead when:**
+- Using Next.js → install `@livery/next` (includes react + core)
+
+## Installation
+
+```bash npm2yarn
+npm install @livery/core @livery/react
+```
+
+## Overview
+
+`@livery/react` provides:
+
+- **DynamicThemeProvider** — React context that manages theme state
+- **CSS Variable Injection** — Automatic injection of CSS custom properties
+- **Theme Switching** — Change themes at runtime with `setThemeId`
+- **State Machine** — Predictable loading states (idle, loading, ready, error)
+- **Typed Hooks** — Optional direct access to theme values via hooks
+
+## How It Works
+
+The provider fetches your theme data and injects CSS variables into the document. Use these variables with Tailwind, shadcn/ui, or vanilla CSS:
+
+```tsx
+// 1. Wrap your app
+<DynamicThemeProvider initialThemeId="light" resolver={resolver}>
+  <App />
+</DynamicThemeProvider>
+
+// 2. Livery injects CSS variables:
+// :root { --colors-primary: #14b8a6; --colors-background: #fff; ... }
+
+// 3. Use with Tailwind (via @theme mapping) or vanilla CSS
+<button className="bg-primary">Click me</button>
+```
+
+## Quick Start
+
+### 1. Create Provider and Hooks
+
+```typescript filename="lib/livery.tsx"
+'use client';
+
+import { createResolver } from '@livery/core';
+import { createDynamicThemeProvider } from '@livery/react';
+import { schema } from './schema';
+import { themes } from './themes';
+
+export const resolver = createResolver({
+  schema,
+  fetcher: ({ themeId }) => themes[themeId] ?? themes.light,
+});
+
+export const {
+  DynamicThemeProvider,
+  useTheme,
+} = createDynamicThemeProvider({ schema });
+```
+
+### 2. Wrap Your App
+
+```tsx filename="app/layout.tsx"
+import { DynamicThemeProvider, resolver } from '@/lib/livery';
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <DynamicThemeProvider initialThemeId="light" resolver={resolver}>
+          {children}
+        </DynamicThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### 3. Use CSS Variables
+
+With Tailwind (recommended):
+
+```css filename="globals.css"
+@import 'tailwindcss';
+
+@theme {
+  --color-primary: var(--colors-primary);
+  --color-background: var(--colors-background);
+}
+```
+
+```tsx
+<button className="bg-primary text-white">Click me</button>
+```
+
+Or with vanilla CSS:
+
+```css
+.button {
+  background-color: var(--colors-primary);
+  color: white;
+}
+```
+
+### 4. Switch Themes
+
+```tsx filename="components/theme-toggle.tsx"
+'use client';
+
+import { useTheme } from '@/lib/livery';
+
+export function ThemeToggle() {
+  const { themeId, setThemeId } = useTheme();
+
+  return (
+    <button onClick={() => setThemeId(themeId === 'dark' ? 'light' : 'dark')}>
+      Toggle Theme
+    </button>
+  );
+}
+```
+
+## Key Concepts
+
+### Factory Pattern
+
+`createDynamicThemeProvider` captures your schema type and creates fully-typed exports:
+
+```typescript
+const { DynamicThemeProvider, useTheme, useThemeValue } = createDynamicThemeProvider({ schema });
+```
+
+### Theme States
+
+The provider manages theme state with a state machine:
+
+```typescript
+const { state, isLoading, isReady, isError, error } = useTheme();
+
+// state.status is one of: 'idle' | 'loading' | 'ready' | 'error'
+```
+
+### CSS Variable Output
+
+CSS variables are automatically injected and updated when the theme changes:
+
+```css
+:root {
+  --colors-primary: #14b8a6;
+  --colors-background: #ffffff;
+  --colors-foreground: #0f172a;
+  /* ... all your schema tokens */
+}
+```
+
+## Advanced: Direct Hook Access
+
+For cases where you need theme values in JavaScript (e.g., for canvas, charts, or dynamic calculations), use the typed hooks:
+
+```tsx
+import { useThemeValue } from '@/lib/livery';
+
+function Chart() {
+  // Get theme value directly for use in JS
+  const primaryColor = useThemeValue('colors.primary');
+
+  return <canvas ref={/* use primaryColor in chart library */} />;
+}
+```
+
+> **Note:** Prefer CSS variables for styling. Use hooks only when you need values in JavaScript.
+
+## Guides
+
+- [Provider Setup](/docs/react/provider) — Configure the DynamicThemeProvider
+- [Hooks](/docs/react/hooks) — Using useTheme, useThemeValue, useThemeReady
+- [Theme Switching](/docs/react/theme-switching) — Change themes dynamically
+- [Server-Side Rendering](/docs/react/ssr) — SSR and hydration
+
+## API Reference
+
+See the full [API Reference](/docs/api/react) for detailed documentation.

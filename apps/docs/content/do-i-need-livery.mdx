@@ -1,0 +1,346 @@
+# Do I Need Livery?
+
+Honest answer: maybe not. A simple React context with `useEffect` can handle basic theming just fine. This page helps you decide if Livery is worth the dependency.
+
+## The DIY Approach
+
+Here's a typical hand-rolled theming solution:
+
+```tsx filename="contexts/ThemeContext.tsx"
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
+
+interface Theme {
+  primaryColor: string;
+  secondaryColor: string;
+  backgroundColor: string;
+  textColor: string;
+  logoUrl: string | null;
+}
+
+interface ThemeContextValue {
+  theme: Theme | null;
+  isLoading: boolean;
+}
+
+const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+const DEFAULT_THEME: Theme = {
+  primaryColor: "#3B82F6",
+  secondaryColor: "#1D4ED8",
+  backgroundColor: "#F8FAFC",
+  textColor: "#1E293B",
+  logoUrl: null,
+};
+
+function applyThemeToDOM(theme: Theme | null) {
+  const root = document.documentElement;
+  const values = theme ?? DEFAULT_THEME;
+
+  root.style.setProperty("--color-primary", values.primaryColor);
+  root.style.setProperty("--color-secondary", values.secondaryColor);
+  root.style.setProperty("--color-background", values.backgroundColor);
+  root.style.setProperty("--color-text", values.textColor);
+}
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const { currentOrg } = useOrganization();
+  const [theme, setTheme] = useState<Theme | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadTheme() {
+      if (!currentOrg) return;
+
+      setIsLoading(true);
+      try {
+        const themeData = await getTeamTheme();
+        setTheme(themeData);
+        applyThemeToDOM(themeData);
+      } catch (err) {
+        console.error("Failed to load theme:", err);
+        applyThemeToDOM(null);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadTheme();
+  }, [currentOrg]);
+
+  return (
+    <ThemeContext.Provider value={{ theme, isLoading }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+export function useTheme() {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error("useTheme must be used within a ThemeProvider");
+  }
+  return context;
+}
+```
+
+This is ~70 lines of straightforward React code. It works. For many apps, this is all you need.
+
+## When DIY Is Enough
+
+Your hand-rolled solution works fine when:
+
+- **Client-side only** — No SSR, or you're okay with a brief flash while theme loads
+- **Simple schema** — A handful of flat color tokens (4-10 values)
+- **Single app** — You're not sharing theme infrastructure across multiple projects
+- **Trusted API** — Your backend always returns valid theme data
+- **Infrequent changes** — Themes are set once and rarely updated
+
+For a simple internal dashboard with basic brand colors, ~70 lines of custom code beats adding a dependency.
+
+## Where Livery Adds Value
+
+### 1. Server-Side Rendering (No Flash)
+
+The DIY approach applies themes in `useEffect`:
+
+```
+Server HTML renders → Page paints with no theme → useEffect runs → Theme applied → Repaint
+```
+
+Users see a flash of unstyled (or wrong-styled) content. With Livery, the theme resolves on the server and CSS is injected before first paint:
+
+```tsx filename="app/layout.tsx"
+import { getLiveryData } from '@livery/next';
+
+export default async function Layout({ children }) {
+  const { css } = await getLiveryData({ themeId, schema, resolver });
+
+  return (
+    <html>
+      <head>
+        {/* Critical CSS — no flash */}
+        <style dangerouslySetInnerHTML={{ __html: css }} />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+### 2. Type Safety Across the Stack
+
+With DIY, your `Theme` type is manually defined. If someone adds a token to the API but forgets to update the TypeScript type, you get silent failures.
+
+With Livery, the schema is the single source of truth:
+
+```typescript
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      secondary: t.color(),
+      background: t.color(),
+      text: t.color(),
+    },
+  },
+});
+
+// Type is derived from schema — can't get out of sync
+type Theme = InferTheme<typeof schema.definition>;
+```
+
+### 3. Runtime Validation
+
+What happens when your API returns `primaryColor: "not-a-color"` or `primaryColor: undefined`?
+
+DIY passes it straight to CSS variables. Livery validates:
+
+```typescript
+const result = validate({ schema, data: apiResponse });
+
+if (!result.success) {
+  console.error('Invalid theme:', result.errors);
+  // Fall back to defaults gracefully
+}
+```
+
+### 4. Caching with Proper Invalidation
+
+DIY fetches on every organization change with no caching. Users switching between orgs repeatedly hit your API every time.
+
+Livery's resolver caches by theme ID with configurable TTL:
+
+```typescript
+const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => fetchTheme(themeId),
+  cache: {
+    ttl: 5 * 60 * 1000, // 5 minutes
+    staleWhileRevalidate: true,
+  },
+});
+
+// When admin updates a theme:
+resolver.invalidate({ themeId: 'acme' });
+```
+
+### 5. Complex Theme Structures
+
+DIY with 4 colors is manageable. DIY with typography, spacing, shadows, and nested tokens becomes painful:
+
+```typescript
+// DIY at scale
+root.style.setProperty("--typography-heading-fontFamily", values.typography.heading.fontFamily);
+root.style.setProperty("--typography-heading-fontSize", values.typography.heading.fontSize);
+root.style.setProperty("--typography-heading-fontWeight", values.typography.heading.fontWeight);
+root.style.setProperty("--typography-body-fontFamily", values.typography.body.fontFamily);
+// ... 50 more lines
+```
+
+Livery generates all CSS variables from your schema automatically:
+
+```typescript
+const css = toCssString({ schema, theme });
+// Outputs all variables in one call
+```
+
+### 6. Multi-Tenant Routing
+
+Need to detect themes from `acme.yourapp.com` or `/t/acme/dashboard`? Livery's middleware handles extraction, validation, and header propagation:
+
+```typescript filename="middleware.ts"
+import { createLiveryMiddleware } from '@livery/next/middleware';
+
+export const middleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+  subdomain: { baseDomain: 'yourapp.com' },
+  fallback: '/select-workspace',
+});
+```
+
+Rolling your own is ~200 lines of edge cases (www vs app subdomains, localhost handling, header propagation to RSCs, etc.).
+
+## Side-by-Side Comparison
+
+Here's the DIY approach migrated to Livery:
+
+### Schema & Resolver
+
+```typescript filename="lib/livery.ts"
+import { createSchema, createResolver, t, type InferTheme } from '@livery/core';
+import { createDynamicThemeProvider } from '@livery/react';
+
+// Schema is source of truth for types
+export const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color({ default: '#3B82F6' }),
+      secondary: t.color({ default: '#1D4ED8' }),
+      background: t.color({ default: '#F8FAFC' }),
+      text: t.color({ default: '#1E293B' }),
+    },
+    logoUrl: t.url({ default: null }),
+  },
+});
+
+export type Theme = InferTheme<typeof schema.definition>;
+
+// Resolver handles fetching + caching
+export const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => {
+    const response = await fetch(`/api/themes/${themeId}`);
+    if (!response.ok) return {}; // Falls back to schema defaults
+    return response.json();
+  },
+  cache: {
+    ttl: 5 * 60 * 1000,
+  },
+});
+
+// Typed provider and hooks
+export const {
+  DynamicThemeProvider,
+  useTheme,
+  useThemeValue,
+} = createDynamicThemeProvider({ schema });
+```
+
+### Provider Setup
+
+```tsx filename="app/providers.tsx"
+'use client';
+
+import { DynamicThemeProvider, resolver } from '@/lib/livery';
+
+export function Providers({
+  children,
+  themeId,
+  initialTheme, // For SSR
+}: {
+  children: React.ReactNode;
+  themeId: string;
+  initialTheme?: Theme;
+}) {
+  return (
+    <DynamicThemeProvider
+      themeId={themeId}
+      resolver={resolver}
+      initialTheme={initialTheme}
+    >
+      {children}
+    </DynamicThemeProvider>
+  );
+}
+```
+
+### Usage in Components
+
+```tsx
+function Header() {
+  const { theme, isLoading } = useTheme();
+
+  // Type-safe access
+  const primaryColor = theme.colors.primary;
+  const logoUrl = theme.logoUrl;
+
+  return (
+    <header style={{ backgroundColor: primaryColor }}>
+      {logoUrl && <img src={logoUrl} alt="Logo" />}
+    </header>
+  );
+}
+```
+
+## Decision Matrix
+
+| Scenario | Recommendation |
+|----------|----------------|
+| Simple CSR app, 5-10 flat tokens | **DIY** — less complexity |
+| SSR required, public-facing app | **Livery** — no FOUC |
+| Complex themes (typography, spacing, shadows) | **Livery** — schema + auto CSS generation |
+| Multiple apps sharing theme infrastructure | **Livery** — shared schema, consistent types |
+| Need runtime validation | **Livery** — built-in |
+| Need caching with invalidation | **Livery** — built-in |
+| Multi-tenant with subdomain/path detection | **Livery** — middleware handles edge cases |
+| Quick prototype or internal tool | **DIY** — fewer moving parts |
+
+## The Bottom Line
+
+If you're building a simple client-side app with a handful of colors, your 70-line solution is arguably better than adding a dependency. Don't over-engineer it.
+
+If you're building a production multi-tenant SaaS with SSR, complex themes, and you anticipate growth — Livery handles the hard parts (SSR hydration, caching, validation, type safety) so you can focus on your product.
+
+## Next Steps
+
+Ready to try Livery?
+
+- [Quick Start](/docs/quick-start) — Get running in 5 minutes
+- [Multi-Tenant Guide](/docs/examples/multi-tenant) — Full SaaS theming walkthrough
+- [SSR Guide](/docs/next/ssr) — Server-side rendering setup

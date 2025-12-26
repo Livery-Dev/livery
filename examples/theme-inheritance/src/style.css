@@ -1,0 +1,314 @@
+/**
+ * Styles for the theme inheritance example.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--typography-font-family);
+  font-size: var(--typography-font-size);
+  line-height: var(--typography-line-height);
+  background-color: var(--colors-background);
+  color: var(--colors-text);
+  padding: var(--spacing-lg);
+  min-height: 100vh;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+#app {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Controls */
+.controls {
+  background-color: var(--colors-surface);
+  border-radius: var(--borders-radius);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--colors-border);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.control-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.control-header h3 {
+  margin-bottom: 4px;
+}
+
+.tenant-buttons {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.tenant-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid var(--colors-border);
+  background: transparent;
+  border-radius: var(--borders-radius);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--colors-text);
+  transition: all 0.2s;
+}
+
+.tenant-btn:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.tenant-btn.active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: white;
+}
+
+/* Main Grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cards */
+.card {
+  background-color: var(--colors-surface);
+  border-radius: var(--borders-radius);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  border: 1px solid var(--colors-border);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.hero-card {
+  text-align: center;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Overrides Panel */
+.overrides-panel {
+  position: sticky;
+  top: var(--spacing-lg);
+}
+
+/* Typography */
+h1,
+h2,
+h3 {
+  color: var(--colors-text);
+  margin-bottom: var(--spacing-sm);
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+h1 {
+  font-size: 2em;
+}
+
+h2 {
+  font-size: 1.25em;
+}
+
+p {
+  margin-bottom: var(--spacing-sm);
+}
+
+.muted {
+  color: var(--colors-text-muted);
+}
+
+.brand-name {
+  color: var(--brand-primary);
+  transition: color 0.3s ease;
+}
+
+/* Lists */
+.benefits-list {
+  list-style: none;
+  padding: 0;
+}
+
+.benefits-list li {
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--colors-border);
+}
+
+.benefits-list li:last-child {
+  border-bottom: none;
+}
+
+/* Buttons */
+.button-group {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  margin-top: var(--spacing-md);
+}
+
+.primary-btn {
+  background-color: var(--brand-primary);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--borders-radius);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 500;
+  transition:
+    background-color 0.3s ease,
+    opacity 0.2s ease;
+}
+
+.primary-btn:hover {
+  opacity: 0.9;
+}
+
+.secondary-btn {
+  background-color: transparent;
+  color: var(--brand-secondary);
+  border: 2px solid var(--brand-secondary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--borders-radius);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 500;
+  transition:
+    background-color 0.2s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.secondary-btn:hover {
+  background-color: var(--colors-background);
+}
+
+/* Color Swatches */
+.color-swatches {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.swatch {
+  height: 50px;
+  border-radius: var(--borders-radius);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.swatch span {
+  font-size: 10px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.swatch.primary {
+  background-color: var(--brand-primary);
+}
+.swatch.secondary {
+  background-color: var(--brand-secondary);
+}
+.swatch.background {
+  background-color: var(--colors-background);
+  border: 1px solid var(--colors-border);
+}
+.swatch.surface {
+  background-color: var(--colors-surface);
+  border: 1px solid var(--colors-border);
+}
+
+/* Code Block */
+.code-block {
+  background-color: var(--colors-background);
+  border: 1px solid var(--colors-border);
+  border-radius: var(--borders-radius);
+  padding: var(--spacing-md);
+  overflow-x: auto;
+  font-size: 13px;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.code-block code {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  color: var(--colors-text);
+  white-space: pre;
+}
+
+/* Syntax highlighting for overrides display */
+.code-block .key {
+  color: var(--brand-primary);
+}
+
+.code-block .value {
+  color: var(--brand-secondary);
+}
+
+.code-block .color-value {
+  color: var(--brand-secondary);
+}
+
+.code-block .color-value::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background: var(--preview-color);
+  border-radius: 2px;
+  margin-right: 4px;
+  vertical-align: middle;
+  border: 1px solid var(--colors-border);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  body {
+    padding: var(--spacing-md);
+  }
+
+  .tenant-buttons {
+    flex-direction: column;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,323 @@
+# Supabase
+
+Store themes in [Supabase](https://supabase.com/) with Row Level Security (RLS) for multi-tenant applications.
+
+## Table Setup
+
+Create a themes table in Supabase:
+
+```sql filename="supabase/migrations/create_themes.sql"
+-- Create themes table
+CREATE TABLE themes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  theme_id TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  tokens JSONB NOT NULL,
+  version INTEGER DEFAULT 1,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create index for fast lookups
+CREATE INDEX idx_themes_theme_id ON themes(theme_id);
+
+-- Enable RLS
+ALTER TABLE themes ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can only read their own theme
+CREATE POLICY "Users can read own theme"
+  ON themes
+  FOR SELECT
+  USING (theme_id = current_setting('app.theme_id', true));
+
+-- Policy: Service role can do everything
+CREATE POLICY "Service role full access"
+  ON themes
+  FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- Auto-update updated_at
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER themes_updated_at
+  BEFORE UPDATE ON themes
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+```
+
+## Supabase Client Setup
+
+```typescript filename="lib/supabase.ts"
+import { createClient } from '@supabase/supabase-js';
+
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// Admin client for server-side operations
+export const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+```
+
+## Resolver Setup
+
+```typescript filename="lib/resolver.ts"
+import { createResolver, validate, type InferTheme } from '@livery/core';
+import { supabaseAdmin } from './supabase';
+import { schema } from './schema';
+
+// Type-safe default theme using schema inference
+type Theme = InferTheme<typeof schema.definition>;
+
+const defaultTheme: Theme = {
+  colors: {
+    primary: '#14B8A6',
+    background: '#FFFFFF',
+    text: '#0F172A',
+  },
+};
+
+export const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => {
+    const { data, error } = await supabaseAdmin
+      .from('themes')
+      .select('tokens')
+      .eq('theme_id', themeId)
+      .eq('is_active', true)
+      .single();
+
+    if (error || !data) {
+      return {}; // Resolver merges with schema defaults
+    }
+
+    // Validate tokens from database
+    const result = validate({ schema, data: data.tokens });
+    if (!result.success) {
+      console.error('Invalid theme tokens:', result.errors);
+      return {};
+    }
+
+    return result.data;
+  },
+  cache: {
+    ttl: 5 * 60 * 1000,
+  },
+});
+```
+
+## TypeScript Types
+
+Generate types from your Supabase schema:
+
+```bash
+npx supabase gen types typescript --project-id your-project-id > lib/database.types.ts
+```
+
+Use the generated types:
+
+```typescript filename="lib/resolver.ts"
+import type { Database } from './database.types';
+
+type Theme = Database['public']['Tables']['themes']['Row'];
+
+const { data } = await supabaseAdmin
+  .from('themes')
+  .select('*')
+  .eq('theme_id', themeId)
+  .single<Theme>();
+```
+
+## Real-Time Updates
+
+Supabase supports real-time subscriptions. Update themes instantly:
+
+```typescript filename="components/theme-listener.tsx"
+'use client';
+
+import { useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/livery';
+
+export function ThemeListener({ themeId }: { themeId: string }) {
+  const { refresh } = useTheme();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('theme-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'themes',
+          filter: `theme_id=eq.${themeId}`,
+        },
+        () => {
+          // Theme was updated, refresh Livery
+          refresh();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [themeId, refresh]);
+
+  return null;
+}
+```
+
+Add to your layout:
+
+```tsx
+<DynamicThemeProvider initialThemeId={themeId} resolver={resolver}>
+  <ThemeListener themeId={themeId} />
+  {children}
+</DynamicThemeProvider>
+```
+
+## CRUD API Routes
+
+### Create Theme
+
+```typescript filename="app/api/themes/route.ts"
+import { supabaseAdmin } from '@/lib/supabase';
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request) {
+  const body = await request.json();
+
+  const { data, error } = await supabaseAdmin
+    .from('themes')
+    .insert({
+      theme_id: body.themeId,
+      name: body.name,
+      tokens: body.tokens,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json(data);
+}
+```
+
+### Update Theme
+
+```typescript
+export async function PUT(request: Request) {
+  const body = await request.json();
+
+  const { data, error } = await supabaseAdmin
+    .from('themes')
+    .update({
+      name: body.name,
+      tokens: body.tokens,
+      version: body.version + 1,
+    })
+    .eq('theme_id', body.themeId)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json(data);
+}
+```
+
+## Row Level Security Patterns
+
+### Per-User Themes
+
+Let users customize their own themes:
+
+```sql
+-- Users can only access their own theme
+CREATE POLICY "Users manage own theme"
+  ON themes
+  FOR ALL
+  USING (theme_id = auth.uid()::text);
+```
+
+### Organization-Based Access
+
+For team/organization themes:
+
+```sql
+-- Users can access their organization's theme
+CREATE POLICY "Org members can read theme"
+  ON themes
+  FOR SELECT
+  USING (
+    theme_id IN (
+      SELECT organization_id::text
+      FROM organization_members
+      WHERE user_id = auth.uid()
+    )
+  );
+```
+
+## Edge Functions
+
+For server-side theme fetching with caching:
+
+```typescript filename="supabase/functions/get-theme/index.ts"
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+);
+
+serve(async (req) => {
+  const { themeId } = await req.json();
+
+  const { data, error } = await supabase
+    .from('themes')
+    .select('tokens')
+    .eq('theme_id', themeId)
+    .single();
+
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 404,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300', // Cache 5 min
+      },
+    });
+  }
+
+  return new Response(JSON.stringify(data.tokens), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=300',
+    },
+  });
+});
+```
+
+## Performance Tips
+
+1. **Use service role for server fetches** — Bypasses RLS overhead
+2. **Cache at the edge** — Use Supabase Edge Functions
+3. **Batch requests** — Fetch multiple themes in one query if needed
+4. **Index JSONB paths** — If querying specific token values

@@ -1,0 +1,243 @@
+# Dynamic Themes in React
+
+Fetch themes from an API, database, or let users customize their theme at runtime.
+
+import { Callout } from 'nextra/components'
+import { UsageMatrix } from '@/components/usage-matrix'
+
+<UsageMatrix highlight="csr-dynamic" />
+
+<Callout>
+  **Have a server?** Use [Dynamic Themes in Next.js](/docs/examples/multi-tenant) instead — the server can fetch and inject the theme before the page loads, avoiding loading states.
+</Callout>
+
+## When You Need This
+
+- Themes fetched from an API or database
+- Users can customize and save their own themes
+- You need theme values in JavaScript (Canvas, charts, third-party libs)
+
+## 1. Define Schema and Resolver
+
+```typescript filename="src/lib/livery.ts"
+import { createSchema, t, createResolver, type InferTheme } from '@livery/core';
+import { createDynamicThemeProvider } from '@livery/react';
+
+export const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      primaryHover: t.color(),
+      background: t.color(),
+      foreground: t.color(),
+      muted: t.color(),
+    },
+  },
+});
+
+export type Theme = InferTheme<typeof schema.definition>;
+
+// Resolver fetches themes from your API
+export const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => {
+    const response = await fetch(`/api/themes/${themeId}`);
+    if (!response.ok) throw new Error(`Theme not found: ${themeId}`);
+    return response.json();
+  },
+  cache: {
+    ttl: 5 * 60 * 1000, // Cache for 5 minutes
+  },
+});
+
+// Create typed provider and hooks
+export const {
+  DynamicThemeProvider,
+  useTheme,
+  useThemeValue,
+} = createDynamicThemeProvider({ schema });
+```
+
+## 2. App Setup
+
+```tsx filename="src/App.tsx"
+import { DynamicThemeProvider, resolver, useTheme } from './lib/livery';
+
+function ThemePicker() {
+  const { themeId, setThemeId, isLoading } = useTheme();
+
+  if (isLoading) return <div>Loading theme...</div>;
+
+  return (
+    <div className="flex gap-2">
+      <span>Theme: {themeId}</span>
+      <button onClick={() => setThemeId('default')}>Default</button>
+      <button onClick={() => setThemeId('ocean')}>Ocean</button>
+      <button onClick={() => setThemeId('sunset')}>Sunset</button>
+    </div>
+  );
+}
+
+export default function App() {
+  const initialThemeId = localStorage.getItem('theme') || 'default';
+
+  return (
+    <DynamicThemeProvider
+      themeId={initialThemeId}
+      resolver={resolver}
+      persist="localStorage"
+    >
+      <div className="min-h-screen bg-background text-foreground p-8">
+        <header className="mb-8">
+          <ThemePicker />
+        </header>
+        <main>
+          <h1 className="text-2xl font-bold">My App</h1>
+          <p className="text-muted">Dynamic theming from API.</p>
+        </main>
+      </div>
+    </DynamicThemeProvider>
+  );
+}
+```
+
+The `persist="localStorage"` prop automatically saves the theme choice when `setThemeId` is called.
+
+## 3. Theme API
+
+```typescript filename="server/api/themes/[id].ts"
+// Your backend returns theme data matching the schema
+const themes = {
+  default: {
+    colors: {
+      primary: '#3B82F6',
+      primaryHover: '#2563EB',
+      background: '#FFFFFF',
+      foreground: '#0F172A',
+      muted: '#64748B',
+    },
+  },
+  ocean: {
+    colors: {
+      primary: '#0EA5E9',
+      primaryHover: '#0284C7',
+      background: '#F0F9FF',
+      foreground: '#0C4A6E',
+      muted: '#64748B',
+    },
+  },
+  sunset: {
+    colors: {
+      primary: '#F97316',
+      primaryHover: '#EA580C',
+      background: '#FFFBEB',
+      foreground: '#78350F',
+      muted: '#92400E',
+    },
+  },
+};
+
+export function GET(themeId: string) {
+  return themes[themeId] ?? themes.default;
+}
+```
+
+## Accessing Theme Values in JS
+
+For Canvas, charts, or third-party libraries:
+
+```tsx filename="components/branded-chart.tsx"
+import { useTheme } from '@/lib/livery';
+import { useEffect, useRef } from 'react';
+
+export function BrandedChart({ data }: { data: number[] }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { theme } = useTheme();
+
+  useEffect(() => {
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx || !theme) return;
+
+    // Use theme colors directly in Canvas
+    ctx.fillStyle = theme.colors.primary;
+    ctx.strokeStyle = theme.colors.foreground;
+    // Draw chart...
+  }, [theme, data]);
+
+  return <canvas ref={canvasRef} width={400} height={200} />;
+}
+```
+
+## User-Customizable Themes
+
+Let users create their own themes with live preview:
+
+```tsx filename="components/theme-editor.tsx"
+import { useState } from 'react';
+import { useTheme } from '@/lib/livery';
+
+type EditorState = 'idle' | 'saving' | 'saved' | 'error';
+
+export function ThemeEditor() {
+  const { theme } = useTheme();
+  const [colors, setColors] = useState(theme?.colors);
+  const [state, setState] = useState<EditorState>('idle');
+
+  function handleColorChange(key: keyof typeof colors, value: string) {
+    setColors({ ...colors, [key]: value });
+    // Live preview — apply immediately
+    document.documentElement.style.setProperty(`--colors-${key}`, value);
+    if (state === 'saved') setState('idle');
+  }
+
+  async function saveTheme() {
+    setState('saving');
+    try {
+      await fetch('/api/themes/custom', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ colors }),
+      });
+      setState('saved');
+    } catch {
+      setState('error');
+    }
+  }
+
+  if (!colors) return null;
+
+  const buttonText = {
+    idle: 'Save Theme',
+    saving: 'Saving...',
+    saved: 'Saved!',
+    error: 'Error — Retry',
+  }[state];
+
+  return (
+    <div className="space-y-4">
+      <h2>Customize Theme</h2>
+      <label className="flex items-center gap-3">
+        <input
+          type="color"
+          value={colors.primary}
+          onChange={(e) => handleColorChange('primary', e.target.value)}
+        />
+        <span>Primary Color</span>
+      </label>
+      <button onClick={saveTheme} disabled={state === 'saving'}>
+        {buttonText}
+      </button>
+    </div>
+  );
+}
+```
+
+## Why This Pattern
+
+| Aspect | How |
+|--------|-----|
+| **Runtime themes** | Resolver fetches from API as needed |
+| **Caching** | Built-in TTL cache prevents redundant fetches |
+| **JS access** | `useTheme()` gives you the full theme object |
+| **Persistence** | `persist="localStorage"` remembers user's choice |
+| **Loading states** | `isLoading` lets you show feedback |

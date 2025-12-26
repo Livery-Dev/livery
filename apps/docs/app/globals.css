@@ -1,0 +1,329 @@
+@import 'tailwindcss';
+
+/* ============================================
+   LIVERY + TAILWIND v4 INTEGRATION
+
+   This is the recommended pattern for integrating Livery with Tailwind CSS v4.
+
+   How it works:
+   1. @theme maps Tailwind tokens to Livery CSS variables
+   2. Livery injects CSS variables server-side (no FOUC)
+   3. Tailwind utilities (bg-primary, text-text, etc.) automatically use Livery values
+
+   Schema path → CSS variable mapping:
+   - colors.primary → --colors-primary
+   - colors.backgroundAlt → --colors-background-alt
+   - typography.fontFamily.sans → --typography-font-family-sans
+   ============================================ */
+
+@theme {
+  /* ========== COLORS (from Livery schema: colors.*) ========== */
+
+  /* Brand */
+  --color-primary: var(--colors-primary);
+  --color-primary-hover: var(--colors-primary-hover);
+  --color-accent: var(--colors-accent);
+
+  /* Backgrounds */
+  --color-background: var(--colors-background);
+  --color-background-alt: var(--colors-background-alt);
+  --color-background-dark: var(--colors-background-dark);
+  --color-surface: var(--colors-surface);
+  --color-surface-hover: var(--colors-surface-hover);
+
+  /* Text */
+  --color-text: var(--colors-text);
+  --color-text-muted: var(--colors-text-muted);
+  --color-text-inverse: var(--colors-text-inverse);
+
+  /* Borders */
+  --color-border: var(--colors-border);
+  --color-border-hover: var(--colors-border-hover);
+
+  /* State */
+  --color-success: var(--colors-success);
+  --color-warning: var(--colors-warning);
+  --color-error: var(--colors-error);
+
+  /* ========== TYPOGRAPHY (from Livery schema: typography.*) ========== */
+
+  /* Font Families */
+  --font-sans: var(--typography-font-family-sans);
+  --font-serif: var(--typography-font-family-serif);
+  --font-mono: var(--typography-font-family-mono);
+  --font-display: var(--typography-font-family-display);
+
+  /* Font Sizes */
+  --text-xs: var(--typography-font-size-xs);
+  --text-sm: var(--typography-font-size-sm);
+  --text-base: var(--typography-font-size-base);
+  --text-lg: var(--typography-font-size-lg);
+  --text-xl: var(--typography-font-size-xl);
+  --text-2xl: var(--typography-font-size-2xl);
+  --text-3xl: var(--typography-font-size-3xl);
+  --text-4xl: var(--typography-font-size-4xl);
+
+  /* ========== BORDER RADIUS (from Livery schema: borderRadius.*) ========== */
+  --radius-sm: var(--border-radius-sm);
+  --radius-md: var(--border-radius-md);
+  --radius-lg: var(--border-radius-lg);
+  --radius-xl: var(--border-radius-xl);
+  --radius-full: var(--border-radius-full);
+}
+
+/* ============================================
+   BASE STYLES
+   Note: Nextra handles body colors for docs pages
+   ============================================ */
+
+body {
+  font-family: var(--font-sans);
+}
+
+button {
+  cursor: pointer;
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+}
+
+/* Smooth transitions for theme switching */
+* {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none;
+  }
+}
+
+/* ============================================
+   NEXTRA LAYOUT OVERRIDES
+   Only structural overrides - let Nextra handle colors/dark mode
+   ============================================ */
+
+/* Content max-width for readability */
+article {
+  max-width: 75ch !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Sidebar width */
+aside:first-of-type,
+nav[aria-label='Main'] {
+  min-width: 280px !important;
+  width: 280px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Sidebar content padding to prevent overlap with footer */
+/* The sidebar footer (theme toggle, etc.) is fixed at the bottom,
+   so the scrollable content needs padding to not be hidden behind it */
+aside:first-of-type > div:first-child,
+.nextra-sidebar-container > nav,
+[class*='nextra-sidebar'] > div:first-child {
+  padding-bottom: 5rem !important;
+}
+
+/* Sidebar footer needs solid background to cover content scrolling behind it */
+.nextra-sidebar-footer {
+  background-color: white;
+}
+
+.dark .nextra-sidebar-footer {
+  background-color: rgb(17, 17, 17); /* Nextra's dark mode sidebar bg */
+}
+
+/* Mobile sidebar needs solid background */
+.nextra-sidebar-container,
+.nextra-mobile-nav {
+  background-color: white !important;
+}
+
+.dark .nextra-sidebar-container,
+.dark .nextra-mobile-nav {
+  background-color: rgb(17, 17, 17) !important;
+}
+
+@media (max-width: 1280px) {
+  aside:first-of-type,
+  nav[aria-label='Main'] {
+    min-width: 260px !important;
+    width: 260px !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  aside:first-of-type,
+  nav[aria-label='Main'] {
+    min-width: 240px !important;
+    width: 240px !important;
+  }
+}
+
+/* ============================================
+   CODE BLOCKS
+   Shiki handles syntax highlighting via the theme in next.config.ts
+   Nextra handles code block containers and backgrounds
+   ============================================ */
+
+/* Shiki dual-theme: apply the correct color based on light/dark mode */
+span[style*='--shiki'] {
+  color: var(--shiki-light);
+}
+
+.dark span[style*='--shiki'] {
+  color: var(--shiki-dark);
+}
+
+pre code {
+  display: block;
+  min-width: fit-content;
+}
+
+/* Line highlighting */
+[data-highlighted-line] {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #3b82f6;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding-left: calc(1rem - 3px);
+  padding-right: 1rem;
+}
+
+/* Line numbers */
+[data-line-numbers] {
+  counter-reset: line;
+}
+
+[data-line-numbers] > [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 1.5rem;
+  margin-right: 1.5rem;
+  text-align: right;
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+/* Word highlighting */
+[data-highlighted-chars] {
+  background-color: rgba(59, 130, 246, 0.2);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+}
+
+/* Copy button */
+button[data-copy-button] {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+[data-rehype-pretty-code-figure]:hover button[data-copy-button],
+button[data-copy-button]:focus {
+  opacity: 1;
+}
+
+/* Language badge */
+[data-language]::before {
+  content: attr(data-language);
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+/* npm2yarn tabs */
+[data-npm2yarn] {
+  margin: 1.5rem 0;
+}
+
+/* ============================================
+   RESPONSIVE STYLES
+   ============================================ */
+
+@media (max-width: 768px) {
+  .nextra-content {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  pre {
+    font-size: 0.8rem;
+    padding: 0.75rem;
+  }
+
+  .nextra-content table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nextra-content h1 {
+    font-size: 1.75rem;
+  }
+
+  .nextra-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .nextra-content h3 {
+    font-size: 1.25rem;
+  }
+
+  :not(pre) > code {
+    font-size: 0.8em;
+    word-break: break-word;
+  }
+
+  .nextra-sidebar-container a,
+  .nextra-sidebar-container button {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .nextra-content {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  [data-rehype-pretty-code-figure] {
+    margin-left: -1rem;
+    margin-right: -1rem;
+  }
+
+  [data-rehype-pretty-code-figure] pre,
+  [data-rehype-pretty-code-figure] figcaption {
+    border-radius: 0;
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

@@ -1,0 +1,82 @@
+# Integrations
+
+Livery works **with** your existing styling tools, not instead of them. It outputs CSS variables that any styling approach can consume.
+
+## How It Works
+
+Livery injects CSS custom properties into your document:
+
+```css
+:root {
+  --colors-primary: #14b8a6;
+  --colors-background: #ffffff;
+  --colors-foreground: #0f172a;
+  --radius-md: 0.5rem;
+  /* ... your schema tokens */
+}
+```
+
+These variables are available to any styling solution. When themes change, variables update automatically.
+
+## Choose Your Stack
+
+| Integration | Best For | Guide |
+|-------------|----------|-------|
+| **Tailwind CSS** | Utility-first styling, most popular | [Tailwind Guide](/docs/integrations/tailwind) |
+| **shadcn/ui** | Pre-built components with Tailwind | [shadcn Guide](/docs/integrations/shadcn) |
+| **Vanilla CSS** | Traditional CSS, CSS Modules | [Vanilla Guide](/docs/integrations/vanilla) |
+
+## Quick Comparison
+
+### Tailwind CSS
+
+Map Livery variables to Tailwind utilities:
+
+```css
+@theme {
+  --color-primary: var(--colors-primary);
+}
+```
+
+```tsx
+<button className="bg-primary text-white">Click me</button>
+```
+
+### shadcn/ui
+
+shadcn already uses CSS variables. Map Livery's variables to shadcn's:
+
+```css
+:root {
+  --primary: var(--colors-primary);
+  --background: var(--colors-background);
+}
+```
+
+All shadcn components automatically use your Livery themes.
+
+### Vanilla CSS
+
+Use CSS variables directly:
+
+```css
+.button {
+  background-color: var(--colors-primary);
+  border-radius: var(--radius-md);
+}
+```
+
+## Why This Approach?
+
+**Livery outputs CSS variables because:**
+
+1. **Universal** — Works with any styling solution
+2. **No lock-in** — Switch styling approaches without changing Livery
+3. **Performance** — CSS variables update without re-renders
+4. **Familiar** — Use your existing tools and patterns
+
+## Next Steps
+
+- **[Tailwind CSS](/docs/integrations/tailwind)** — Most common integration
+- **[shadcn/ui](/docs/integrations/shadcn)** — Component library integration
+- **[Use Cases](/docs/examples)** — Multi-tenant, white-label patterns

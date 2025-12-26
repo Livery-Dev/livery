@@ -1,0 +1,134 @@
+# @livery/core
+
+The core package provides the foundation for Livery's theming system. It includes schema definition, token types, validation, and CSS utilities.
+
+## When to Use This Package
+
+**Use `@livery/core` directly when:**
+- Building a custom integration for a non-React framework
+- You only need schema definition and validation
+- You're building your own theme provider
+
+**Use framework packages instead when:**
+- Using React → install `@livery/react` (includes core)
+- Using Next.js → install `@livery/next` (includes react + core)
+
+Most developers use `@livery/react` or `@livery/next`, which re-export everything from core.
+
+## Installation
+
+```bash npm2yarn
+npm install @livery/core
+```
+
+## Overview
+
+`@livery/core` is a **zero-dependency** package that works in any JavaScript environment. It provides:
+
+- **Schema Definition** — Define your theme structure with type-safe token builders
+- **Token Types** — Colors, dimensions, fonts, shadows, and more
+- **Validation** — Validate theme data against your schema
+- **CSS Utilities** — Generate CSS custom properties from theme values
+- **Type Inference** — Full TypeScript support with inferred types
+
+## Basic Usage
+
+### Static Themes (Most Common)
+
+For light/dark mode or bundled brand themes, use `toCssStringAll` to generate CSS for all themes at once:
+
+```typescript
+import { createSchema, t, toCssStringAll, type InferTheme } from '@livery/core';
+
+// 1. Define your schema
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      background: t.color(),
+    },
+  },
+});
+
+// 2. Infer the theme type from your schema
+type Theme = InferTheme<typeof schema.definition>;
+
+// 3. Create type-safe themes
+const light: Theme = {
+  colors: { primary: '#14B8A6', background: '#FFFFFF' },
+};
+
+const dark: Theme = {
+  colors: { primary: '#2DD4BF', background: '#0F172A' },
+};
+
+// 4. Generate CSS for all themes
+const css = toCssStringAll({
+  schema,
+  themes: { light, dark },
+  defaultTheme: 'light',
+});
+// → :root, [data-theme="light"] { --colors-primary: #14B8A6; ... }
+// → [data-theme="dark"] { --colors-primary: #2DD4BF; ... }
+```
+
+Switch themes by changing `document.documentElement.dataset.theme` — no CSS regeneration needed.
+
+### Dynamic Themes (API/Database)
+
+For themes fetched at runtime (multi-tenant, user preferences), use a resolver:
+
+```typescript
+import { createSchema, t, createResolver, type InferTheme } from '@livery/core';
+
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      background: t.color(),
+    },
+  },
+});
+
+type Theme = InferTheme<typeof schema.definition>;
+
+const defaultTheme: Theme = {
+  colors: { primary: '#14B8A6', background: '#FFFFFF' },
+};
+
+// Create a resolver that fetches themes
+const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => fetchThemeFromAPI(themeId) ?? defaultTheme,
+});
+
+// Resolve a theme — fully typed!
+const theme = await resolver.resolve({ themeId: 'acme-corp' });
+theme.colors.primary;  // string
+```
+
+## Key Concepts
+
+### Schema
+
+A schema defines the structure and types of your theme. Learn more in [Schema](/docs/core/schema).
+
+### Tokens
+
+Tokens are the building blocks of your theme. Each token has a type (color, dimension, etc.) and optional metadata. Learn more in [Token Types](/docs/core/tokens).
+
+### Resolver
+
+The resolver fetches and caches theme data. It validates data against your schema and provides type-safe access. Learn more in [Resolver](/docs/core/resolver).
+
+### Validation
+
+Livery validates theme data at runtime to ensure it matches your schema. Learn more in [Validation](/docs/core/validation).
+
+### CSS Utilities
+
+Generate CSS custom properties from your theme for easy styling. Learn more in [CSS Utilities](/docs/core/css).
+
+## API Reference
+
+See the full [API Reference](/docs/api/core) for detailed documentation of all exports.

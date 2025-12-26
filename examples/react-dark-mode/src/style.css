@@ -1,0 +1,254 @@
+/* Base reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Use CSS variables from Livery */
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  background: var(--colors-background);
+  color: var(--colors-text);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Layout */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.header {
+  background: var(--colors-surface);
+  border-bottom: 1px solid var(--colors-border);
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.header h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--brand-primary);
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--colors-surfaceHover);
+  border: 1px solid var(--colors-border);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  color: var(--colors-text);
+  font-size: 0.875rem;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.theme-toggle:hover {
+  background: var(--colors-border);
+}
+
+.theme-toggle-icon {
+  font-size: 1.125rem;
+}
+
+/* Tenant selector */
+.tenant-select {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--colors-surface);
+  border: 1px solid var(--colors-border);
+  border-radius: var(--border-radius);
+  color: var(--colors-text);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+/* Main content */
+.main {
+  flex: 1;
+  padding: var(--spacing-xl);
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Card component */
+.card {
+  background: var(--colors-surface);
+  border: 1px solid var(--colors-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.card h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  color: var(--colors-text);
+}
+
+.card p {
+  color: var(--colors-textMuted);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Color palette display */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.color-item {
+  text-align: center;
+}
+
+.color-swatch {
+  width: 100%;
+  height: 60px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--colors-border);
+  margin-bottom: var(--spacing-xs);
+}
+
+.color-label {
+  font-size: 0.75rem;
+  color: var(--colors-textMuted);
+}
+
+.color-value {
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--colors-text);
+}
+
+/* Buttons */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--border-radius);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.button:active {
+  transform: scale(0.98);
+}
+
+.button-primary {
+  background: var(--brand-primary);
+  color: var(--colors-textInverse);
+}
+
+.button-primary:hover {
+  background: var(--brand-primaryHover);
+}
+
+.button-secondary {
+  background: var(--colors-surfaceHover);
+  color: var(--colors-text);
+  border: 1px solid var(--colors-border);
+}
+
+.button-secondary:hover {
+  background: var(--colors-border);
+}
+
+.button-group {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* Form elements */
+.input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--colors-background);
+  border: 1px solid var(--colors-border);
+  border-radius: var(--border-radius);
+  color: var(--colors-text);
+  font-size: 0.875rem;
+  transition: border-color 0.2s, background-color 0.3s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+
+.input::placeholder {
+  color: var(--colors-textMuted);
+}
+
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: var(--spacing-xs);
+  color: var(--colors-text);
+}
+
+/* Status badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  background: var(--brand-primary);
+  color: var(--colors-textInverse);
+}
+
+/* Loading */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--colors-background, #f8fafc);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--colors-border, #e2e8f0);
+  border-top-color: var(--brand-primary, #3b82f6);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

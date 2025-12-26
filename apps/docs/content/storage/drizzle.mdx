@@ -1,0 +1,297 @@
+# Drizzle ORM
+
+Store themes using [Drizzle ORM](https://orm.drizzle.team/) — a lightweight, SQL-like TypeScript ORM.
+
+## Schema Definition
+
+Define your themes table with Drizzle:
+
+```typescript filename="db/schema.ts"
+import {
+  pgTable,
+  uuid,
+  text,
+  jsonb,
+  integer,
+  boolean,
+  timestamp,
+} from 'drizzle-orm/pg-core';
+
+export const themes = pgTable('themes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  themeId: text('theme_id').unique().notNull(),
+  name: text('name').notNull(),
+  tokens: jsonb('tokens').notNull(),
+  version: integer('version').default(1),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Infer types
+export type Theme = typeof themes.$inferSelect;
+export type NewTheme = typeof themes.$inferInsert;
+```
+
+## Database Client
+
+```typescript filename="db/index.ts"
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import * as schema from './schema';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+export const db = drizzle(pool, { schema });
+```
+
+## Run Migration
+
+Generate and run the migration:
+
+```bash
+npx drizzle-kit generate:pg
+npx drizzle-kit push:pg
+```
+
+## Resolver Setup
+
+```typescript filename="lib/resolver.ts"
+import { createResolver, validate, type InferTheme } from '@livery/core';
+import { eq } from 'drizzle-orm';
+import { db } from '@/db';
+import { themes } from '@/db/schema';
+import { schema } from './schema';
+
+// Type-safe default theme using schema inference
+type Theme = InferTheme<typeof schema.definition>;
+
+const defaultTheme: Theme = {
+  colors: {
+    primary: '#14B8A6',
+    background: '#FFFFFF',
+    text: '#0F172A',
+  },
+};
+
+export const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => {
+    const [theme] = await db
+      .select()
+      .from(themes)
+      .where(eq(themes.themeId, themeId))
+      .limit(1);
+
+    if (!theme || !theme.isActive) {
+      return {}; // Resolver merges with schema defaults
+    }
+
+    // Validate tokens from database
+    const result = validate({ schema, data: theme.tokens });
+    if (!result.success) {
+      console.error('Invalid theme tokens:', result.errors);
+      return {};
+    }
+
+    return result.data;
+  },
+  cache: {
+    ttl: 5 * 60 * 1000,
+  },
+});
+```
+
+## Type-Safe Tokens
+
+Use `InferTheme` from `@livery/core` to derive your theme type from the schema — no need to maintain a separate interface:
+
+```typescript filename="lib/schema.ts"
+import { createSchema, t, type InferTheme } from '@livery/core';
+
+export const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      background: t.color(),
+      text: t.color(),
+    },
+  },
+});
+
+// Derive the type from the schema
+export type Theme = InferTheme<typeof schema.definition>;
+```
+
+Now TypeScript enforces your theme structure everywhere:
+
+```typescript
+import type { Theme } from './schema';
+
+// TypeScript will error if properties are missing or wrong type
+const myTheme: Theme = {
+  colors: {
+    primary: '#14B8A6',
+    background: '#FFFFFF',
+    text: '#0F172A',
+  },
+};
+```
+
+## CRUD Operations
+
+### Create Theme
+
+```typescript filename="app/api/themes/route.ts"
+import { db } from '@/db';
+import { themes } from '@/db/schema';
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request) {
+  const body = await request.json();
+
+  const [theme] = await db
+    .insert(themes)
+    .values({
+      themeId: body.themeId,
+      name: body.name,
+      tokens: body.tokens,
+    })
+    .returning();
+
+  return NextResponse.json(theme);
+}
+```
+
+### Update Theme
+
+```typescript
+import { eq, sql } from 'drizzle-orm';
+
+export async function PUT(request: Request) {
+  const body = await request.json();
+
+  const [theme] = await db
+    .update(themes)
+    .set({
+      name: body.name,
+      tokens: body.tokens,
+      version: sql`${themes.version} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(eq(themes.themeId, body.themeId))
+    .returning();
+
+  return NextResponse.json(theme);
+}
+```
+
+### Delete Theme
+
+```typescript
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const themeId = searchParams.get('themeId');
+
+  if (!themeId) {
+    return NextResponse.json({ error: 'Missing themeId' }, { status: 400 });
+  }
+
+  // Soft delete
+  await db
+    .update(themes)
+    .set({ isActive: false })
+    .where(eq(themes.themeId, themeId));
+
+  return NextResponse.json({ success: true });
+}
+```
+
+## With Drizzle + Turso (SQLite)
+
+For edge deployments, use Drizzle with Turso:
+
+```typescript filename="db/index.ts"
+import { drizzle } from 'drizzle-orm/libsql';
+import { createClient } from '@libsql/client';
+import * as schema from './schema';
+
+const client = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
+
+export const db = drizzle(client, { schema });
+```
+
+SQLite schema variant:
+
+```typescript filename="db/schema.ts"
+import {
+  sqliteTable,
+  text,
+  integer,
+} from 'drizzle-orm/sqlite-core';
+
+export const themes = sqliteTable('themes', {
+  id: text('id').primaryKey(),
+  themeId: text('theme_id').unique().notNull(),
+  name: text('name').notNull(),
+  tokens: text('tokens', { mode: 'json' }).notNull(),
+  version: integer('version').default(1),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  createdAt: integer('created_at', { mode: 'timestamp' }),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
+});
+```
+
+## Transactions
+
+Update theme with version check:
+
+```typescript
+import { and, eq } from 'drizzle-orm';
+
+async function updateThemeWithVersion(
+  themeId: string,
+  tokens: ThemeTokens,
+  expectedVersion: number
+) {
+  return await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(themes)
+      .where(eq(themes.themeId, themeId));
+
+    if (!existing || existing.version !== expectedVersion) {
+      throw new Error('Version conflict');
+    }
+
+    const [updated] = await tx
+      .update(themes)
+      .set({
+        tokens,
+        version: expectedVersion + 1,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(themes.themeId, themeId),
+          eq(themes.version, expectedVersion)
+        )
+      )
+      .returning();
+
+    return updated;
+  });
+}
+```
+
+## Performance Tips
+
+1. **Use prepared statements** — Drizzle supports them natively
+2. **Connection pooling** — Use `pg` pool or PgBouncer
+3. **Index theme_id** — Already done with `.unique()`
+4. **Batch operations** — Use transactions for multiple updates

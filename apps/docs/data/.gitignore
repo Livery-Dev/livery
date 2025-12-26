@@ -1,0 +1,5 @@
+# Ignore actual waitlist data (contains PII)
+waitlist.json
+
+# Keep the example file
+!waitlist.example.json

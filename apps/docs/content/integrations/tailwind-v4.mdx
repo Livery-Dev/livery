@@ -1,0 +1,823 @@
+# Tailwind CSS v4 Integration
+
+A comprehensive guide to using Livery with Tailwind CSS v4. This guide covers vanilla JS, React, and Next.js setups.
+
+## Why Livery + Tailwind v4?
+
+Tailwind CSS v4 treats CSS variables as first-class citizens with the `@theme` directive. This pairs perfectly with Livery's CSS variable output:
+
+- **Type-safe themes** - Define your design tokens with full TypeScript inference
+- **Runtime switching** - Change themes without rebuilding CSS
+- **No config files** - All theming happens in CSS with `@theme`
+- **Zero JavaScript runtime** - Tailwind classes reference CSS variables directly
+
+## Vanilla JS + Tailwind v4
+
+The simplest setup—no framework required.
+
+### Project Structure
+
+```plaintext
+my-app/
+├── src/
+│   ├── theme/
+│   │   └── index.ts       # Schema, themes, and CSS generation
+│   ├── styles/
+│   │   └── app.css        # Tailwind + @theme
+│   └── main.ts            # App entry point
+├── index.html
+└── package.json
+```
+
+### 1. Define Schema and Themes
+
+```typescript filename="src/theme/index.ts"
+import { createSchema, t, toCssStringAll, type InferTheme } from '@livery/core';
+
+export const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      primaryHover: t.color(),
+      background: t.color(),
+      surface: t.color(),
+      text: t.color(),
+      textMuted: t.color(),
+      border: t.color(),
+    },
+    typography: {
+      fontFamily: {
+        sans: t.fontFamily(),
+        mono: t.fontFamily(),
+      },
+      fontSize: {
+        sm: t.dimension(),
+        base: t.dimension(),
+        lg: t.dimension(),
+        xl: t.dimension(),
+      },
+    },
+    spacing: {
+      sm: t.dimension(),
+      md: t.dimension(),
+      lg: t.dimension(),
+    },
+    borderRadius: {
+      sm: t.dimension(),
+      md: t.dimension(),
+      lg: t.dimension(),
+    },
+  },
+});
+
+type Theme = InferTheme<typeof schema.definition>;
+
+const lightTheme: Theme = {
+  colors: {
+    primary: '#3B82F6',
+    primaryHover: '#2563EB',
+    background: '#FFFFFF',
+    surface: '#F8FAFC',
+    text: '#0F172A',
+    textMuted: '#64748B',
+    border: '#E2E8F0',
+  },
+  typography: {
+    fontFamily: {
+      sans: 'Inter, system-ui, sans-serif',
+      mono: 'JetBrains Mono, monospace',
+    },
+    fontSize: {
+      sm: '0.875rem',
+      base: '1rem',
+      lg: '1.125rem',
+      xl: '1.25rem',
+    },
+  },
+  spacing: {
+    sm: '0.5rem',
+    md: '1rem',
+    lg: '1.5rem',
+  },
+  borderRadius: {
+    sm: '0.25rem',
+    md: '0.5rem',
+    lg: '0.75rem',
+  },
+};
+
+const darkTheme: Theme = {
+  colors: {
+    primary: '#60A5FA',
+    primaryHover: '#3B82F6',
+    background: '#0F172A',
+    surface: '#1E293B',
+    text: '#F1F5F9',
+    textMuted: '#94A3B8',
+    border: '#334155',
+  },
+  typography: lightTheme.typography,
+  spacing: lightTheme.spacing,
+  borderRadius: lightTheme.borderRadius,
+};
+
+// Generate CSS for ALL themes at once
+export const themesCss = toCssStringAll({
+  schema,
+  themes: { light: lightTheme, dark: darkTheme },
+  defaultTheme: 'light',
+});
+// Output:
+// :root, [data-theme="light"] { --colors-primary: #3B82F6; ... }
+// [data-theme="dark"] { --colors-primary: #60A5FA; ... }
+```
+
+### 2. Configure Tailwind with @theme
+
+```css filename="src/styles/app.css"
+@import "tailwindcss";
+
+@theme {
+  /* Colors - map to Livery CSS variables */
+  --color-primary: var(--colors-primary);
+  --color-primary-hover: var(--colors-primaryHover);
+  --color-background: var(--colors-background);
+  --color-surface: var(--colors-surface);
+  --color-text: var(--colors-text);
+  --color-text-muted: var(--colors-textMuted);
+  --color-border: var(--colors-border);
+
+  /* Typography */
+  --font-sans: var(--typography-fontFamily-sans);
+  --font-mono: var(--typography-fontFamily-mono);
+
+  --text-sm: var(--typography-fontSize-sm);
+  --text-base: var(--typography-fontSize-base);
+  --text-lg: var(--typography-fontSize-lg);
+  --text-xl: var(--typography-fontSize-xl);
+
+  /* Spacing */
+  --spacing-sm: var(--spacing-sm);
+  --spacing-md: var(--spacing-md);
+  --spacing-lg: var(--spacing-lg);
+
+  /* Border Radius */
+  --radius-sm: var(--borderRadius-sm);
+  --radius-md: var(--borderRadius-md);
+  --radius-lg: var(--borderRadius-lg);
+}
+```
+
+### 3. Use in HTML
+
+```html filename="index.html"
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <!-- Theme CSS will be injected by main.ts, or include it at build time -->
+  <link rel="stylesheet" href="/src/styles/app.css">
+</head>
+<body class="bg-background text-text font-sans">
+  <header class="bg-surface border-b border-border p-md">
+    <h1 class="text-xl font-bold">My App</h1>
+  </header>
+
+  <main class="p-lg">
+    <div class="bg-surface rounded-lg p-md border border-border">
+      <h2 class="text-lg font-semibold">Welcome</h2>
+      <p class="text-text-muted mt-sm">This is themed with Livery + Tailwind v4</p>
+
+      <button
+        id="theme-toggle"
+        class="mt-md bg-primary hover:bg-primary-hover text-white px-md py-sm rounded-md"
+      >
+        Toggle Theme
+      </button>
+    </div>
+  </main>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
+```
+
+```typescript filename="src/main.ts"
+import { themesCss } from './theme';
+import './styles/app.css';
+
+type ThemeId = 'light' | 'dark';
+
+// Inject all theme CSS once (or do this at build time)
+const styleEl = document.createElement('style');
+styleEl.id = 'livery-themes';
+styleEl.textContent = themesCss;
+document.head.appendChild(styleEl);
+
+// Get initial theme from localStorage or system preference
+function getInitialTheme(): ThemeId {
+  const stored = localStorage.getItem('theme') as ThemeId | null;
+  if (stored) return stored;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+// Initialize
+let currentTheme = getInitialTheme();
+document.documentElement.dataset.theme = currentTheme;
+
+// Toggle handler — just changes the data attribute!
+document.getElementById('theme-toggle')?.addEventListener('click', () => {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = currentTheme;
+  localStorage.setItem('theme', currentTheme);
+});
+```
+
+---
+
+## React + Tailwind v4
+
+Full React setup with zero-flash theme switching.
+
+### Project Structure
+
+```plaintext
+my-react-app/
+├── src/
+│   ├── theme/
+│   │   └── index.ts           # Schema, themes, CSS, and provider
+│   ├── components/
+│   │   ├── Button.tsx
+│   │   └── Card.tsx
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css
+├── index.html
+└── package.json
+```
+
+### 1. Define Schema, Themes, and Provider
+
+```typescript filename="src/theme/index.ts"
+import { createSchema, t, toCssStringAll, type InferTheme } from '@livery/core';
+import { createStaticThemeProvider, getThemeInitScript } from '@livery/react';
+
+export const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      primaryHover: t.color(),
+      background: t.color(),
+      surface: t.color(),
+      text: t.color(),
+      textMuted: t.color(),
+      border: t.color(),
+    },
+    // ... rest of schema (typography, spacing, borderRadius)
+  },
+});
+
+type Theme = InferTheme<typeof schema.definition>;
+
+const lightTheme: Theme = {
+  colors: {
+    primary: '#3B82F6',
+    primaryHover: '#2563EB',
+    background: '#FFFFFF',
+    surface: '#F8FAFC',
+    text: '#0F172A',
+    textMuted: '#64748B',
+    border: '#E2E8F0',
+  },
+  // ... rest of theme values
+};
+
+const darkTheme: Theme = {
+  colors: {
+    primary: '#60A5FA',
+    primaryHover: '#3B82F6',
+    background: '#0F172A',
+    surface: '#1E293B',
+    text: '#F1F5F9',
+    textMuted: '#94A3B8',
+    border: '#334155',
+  },
+  // ... rest of theme values
+};
+
+// Generate CSS for all themes at once
+export const themesCss = toCssStringAll({
+  schema,
+  themes: { light: lightTheme, dark: darkTheme },
+  defaultTheme: 'light',
+});
+
+// Generate init script (sets theme before React renders — no flash)
+export const themeInitScript = getThemeInitScript({
+  themes: ['light', 'dark'],
+  defaultTheme: 'light',
+});
+
+// Create typed provider and hook
+export const { StaticThemeProvider, useTheme } = createStaticThemeProvider({
+  themes: ['light', 'dark'] as const,
+  defaultTheme: 'light',
+});
+```
+
+### 2. Set Up index.html
+
+The init script runs before React, reading from localStorage or system preference and setting `data-theme`. This prevents any flash.
+
+```html filename="index.html"
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My App</title>
+    <!-- Theme CSS and init script are injected by main.tsx -->
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+```
+
+### 3. Configure Tailwind
+
+```css filename="src/index.css"
+@import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-primary: var(--colors-primary);
+  --color-primary-hover: var(--colors-primaryHover);
+  --color-background: var(--colors-background);
+  --color-surface: var(--colors-surface);
+  --color-text: var(--colors-text);
+  --color-text-muted: var(--colors-textMuted);
+  --color-border: var(--colors-border);
+
+  /* Typography */
+  --font-sans: var(--typography-fontFamily-sans);
+  --font-mono: var(--typography-fontFamily-mono);
+
+  /* Spacing */
+  --spacing-sm: var(--spacing-sm);
+  --spacing-md: var(--spacing-md);
+  --spacing-lg: var(--spacing-lg);
+
+  /* Border Radius */
+  --radius-sm: var(--borderRadius-sm);
+  --radius-md: var(--borderRadius-md);
+  --radius-lg: var(--borderRadius-lg);
+}
+```
+
+### 4. Set Up main.tsx
+
+Inject the CSS and init script into the document head:
+
+```tsx filename="src/main.tsx"
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { themesCss, themeInitScript } from './theme';
+import App from './App';
+import './index.css';
+
+// Inject theme CSS
+const styleEl = document.createElement('style');
+styleEl.id = 'livery-themes';
+styleEl.textContent = themesCss;
+document.head.appendChild(styleEl);
+
+// Inject init script (in a real app, put this directly in index.html for fastest execution)
+const scriptEl = document.createElement('script');
+scriptEl.textContent = themeInitScript;
+document.head.appendChild(scriptEl);
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+```
+
+> **Tip:** For the fastest zero-flash experience, inline both `themesCss` and `themeInitScript` directly in your `index.html` at build time.
+
+### 5. Build Components
+
+```tsx filename="src/components/Button.tsx"
+import { ButtonHTMLAttributes, ReactNode } from 'react';
+
+type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  children: ReactNode;
+}
+
+const variants: Record<ButtonVariant, string> = {
+  primary: 'bg-primary hover:bg-primary-hover text-white',
+  secondary: 'bg-surface hover:bg-background border border-border text-text',
+  ghost: 'bg-transparent hover:bg-surface text-text',
+};
+
+export function Button({ variant = 'primary', children, className = '', ...props }: ButtonProps) {
+  return (
+    <button
+      className={`px-md py-sm rounded-md font-medium transition-colors ${variants[variant]} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+```
+
+```tsx filename="src/components/Card.tsx"
+import { ReactNode } from 'react';
+
+interface CardProps {
+  title: string;
+  children: ReactNode;
+}
+
+export function Card({ title, children }: CardProps) {
+  return (
+    <div className="bg-surface border border-border rounded-lg p-lg">
+      <h3 className="text-lg font-semibold text-text">{title}</h3>
+      <div className="mt-sm text-text-muted">{children}</div>
+    </div>
+  );
+}
+```
+
+### 6. Wire Up the App
+
+```tsx filename="src/App.tsx"
+import { StaticThemeProvider, useTheme } from './theme';
+import { Button } from './components/Button';
+import { Card } from './components/Card';
+
+function Header() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <header className="bg-surface border-b border-border p-md flex justify-between items-center">
+      <h1 className="text-xl font-bold">My React App</h1>
+      <Button
+        variant="secondary"
+        onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+      >
+        {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+      </Button>
+    </header>
+  );
+}
+
+export default function App() {
+  return (
+    <StaticThemeProvider>
+      <div className="min-h-screen bg-background text-text font-sans">
+        <Header />
+        <main className="p-lg max-w-4xl mx-auto">
+          <div className="grid gap-lg md:grid-cols-2">
+            <Card title="Getting Started">
+              <p>Your themes are type-safe and work seamlessly with Tailwind v4.</p>
+            </Card>
+            <Card title="Components">
+              <p>Build reusable components that automatically adapt to the current theme.</p>
+            </Card>
+          </div>
+
+          <div className="mt-lg flex gap-sm">
+            <Button variant="primary">Primary</Button>
+            <Button variant="secondary">Secondary</Button>
+            <Button variant="ghost">Ghost</Button>
+          </div>
+        </main>
+      </div>
+    </StaticThemeProvider>
+  );
+}
+```
+
+---
+
+## Next.js + Tailwind v4
+
+Server-side rendering with no flash.
+
+### Project Structure
+
+```plaintext
+my-nextjs-app/
+├── app/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── globals.css
+├── lib/
+│   └── theme.ts              # Schema, themes, CSS, and provider
+├── components/
+│   └── ThemeToggle.tsx
+└── package.json
+```
+
+### 1. Define Schema, Themes, and Provider
+
+```typescript filename="lib/theme.ts"
+import { createSchema, t, toCssStringAll, type InferTheme } from '@livery/core';
+import { createStaticThemeProvider } from '@livery/react';
+
+export const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      primaryHover: t.color(),
+      background: t.color(),
+      surface: t.color(),
+      text: t.color(),
+      textMuted: t.color(),
+      border: t.color(),
+    },
+    // ... rest of schema
+  },
+});
+
+type Theme = InferTheme<typeof schema.definition>;
+
+const lightTheme: Theme = {
+  colors: {
+    primary: '#3B82F6',
+    primaryHover: '#2563EB',
+    background: '#FFFFFF',
+    surface: '#F8FAFC',
+    text: '#0F172A',
+    textMuted: '#64748B',
+    border: '#E2E8F0',
+  },
+  // ... rest of theme values
+};
+
+const darkTheme: Theme = {
+  colors: {
+    primary: '#60A5FA',
+    primaryHover: '#3B82F6',
+    background: '#0F172A',
+    surface: '#1E293B',
+    text: '#F1F5F9',
+    textMuted: '#94A3B8',
+    border: '#334155',
+  },
+  // ... rest of theme values
+};
+
+// Generate CSS for all themes at once
+export const themesCss = toCssStringAll({
+  schema,
+  themes: { light: lightTheme, dark: darkTheme },
+  defaultTheme: 'light',
+});
+
+// Create typed provider and hook
+export const { StaticThemeProvider, useTheme } = createStaticThemeProvider({
+  themes: ['light', 'dark'] as const,
+  defaultTheme: 'light',
+});
+
+export type ThemeName = 'light' | 'dark';
+```
+
+### 2. Configure Tailwind
+
+```css filename="app/globals.css"
+@import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-primary: var(--colors-primary);
+  --color-primary-hover: var(--colors-primaryHover);
+  --color-background: var(--colors-background);
+  --color-surface: var(--colors-surface);
+  --color-text: var(--colors-text);
+  --color-text-muted: var(--colors-textMuted);
+  --color-border: var(--colors-border);
+
+  /* Typography */
+  --font-sans: var(--typography-fontFamily-sans);
+  --font-mono: var(--typography-fontFamily-mono);
+
+  /* Spacing */
+  --spacing-sm: var(--spacing-sm);
+  --spacing-md: var(--spacing-md);
+  --spacing-lg: var(--spacing-lg);
+
+  /* Border Radius */
+  --radius-sm: var(--borderRadius-sm);
+  --radius-md: var(--borderRadius-md);
+  --radius-lg: var(--borderRadius-lg);
+}
+```
+
+### 3. Set Up Root Layout
+
+The key to no-flash SSR is:
+1. Read the theme preference from cookies on the server
+2. Inject the theme CSS in the `<head>` before any content renders
+3. Set the `data-theme` attribute on the `<html>` element
+
+```tsx filename="app/layout.tsx"
+import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
+import { Inter } from 'next/font/google';
+import { themesCss, StaticThemeProvider, ThemeName } from '@/lib/theme';
+import './globals.css';
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+
+export const metadata: Metadata = {
+  title: 'My Next.js App',
+  description: 'Themed with Livery + Tailwind v4',
+};
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Read theme from cookie for SSR (no flash!)
+  const cookieStore = await cookies();
+  const theme = (cookieStore.get('theme')?.value as ThemeName) ?? 'light';
+
+  return (
+    <html lang="en" data-theme={theme} suppressHydrationWarning>
+      <head>
+        {/* Inject all theme CSS — renders before body, no flash */}
+        <style dangerouslySetInnerHTML={{ __html: themesCss }} />
+      </head>
+      <body className={`${inter.variable} font-sans antialiased`}>
+        <StaticThemeProvider initialTheme={theme} persist="cookie">
+          {children}
+        </StaticThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### 4. Create Theme Toggle
+
+```tsx filename="components/ThemeToggle.tsx"
+'use client';
+
+import { useTheme } from '@/lib/theme';
+
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <button
+      onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+      className="bg-surface border border-border rounded-md px-md py-sm hover:bg-background transition-colors"
+    >
+      {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+    </button>
+  );
+}
+```
+
+### 5. Build Your Page
+
+```tsx filename="app/page.tsx"
+import { ThemeToggle } from '@/components/ThemeToggle';
+
+export default function Home() {
+  return (
+    <div className="min-h-screen bg-background text-text">
+      <header className="bg-surface border-b border-border p-md flex justify-between items-center">
+        <h1 className="text-xl font-bold">Next.js + Livery + Tailwind v4</h1>
+        <ThemeToggle />
+      </header>
+
+      <main className="p-lg max-w-4xl mx-auto">
+        <div className="bg-surface rounded-lg border border-border p-lg">
+          <h2 className="text-lg font-semibold">Server-rendered theming</h2>
+          <p className="mt-sm text-text-muted">
+            Themes work seamlessly with Next.js App Router and SSR.
+          </p>
+        </div>
+      </main>
+    </div>
+  );
+}
+```
+
+### Optional: Dynamic Themes (Multi-tenant)
+
+The examples above use **bundled themes** — all theme CSS is generated at build time and switching happens via `data-theme`. This is the simplest approach for light/dark mode.
+
+For **dynamic themes** fetched from an API or database (e.g., multi-tenant SaaS where each customer has their own brand), you'll use a resolver pattern instead. See the [Multi-Tenant](/docs/examples/multi-tenant) guide for the full pattern.
+
+Here's a quick example using subdomain-based theme detection:
+
+```typescript filename="middleware.ts"
+import { createLiveryMiddleware } from '@livery/next/middleware';
+
+export const middleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+  subdomain: {
+    baseDomain: 'myapp.io',
+    ignore: ['www', 'app'],
+  },
+  fallback: '/select-workspace',
+});
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+};
+```
+
+```tsx filename="app/layout.tsx"
+import { headers } from 'next/headers';
+import { getLiveryData, getThemeFromHeaders } from '@livery/next';
+import { schema, resolver } from '@/lib/theme/livery';
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const headersList = await headers();
+  const themeId = getThemeFromHeaders({ headers: headersList }) ?? 'default';
+
+  // Resolver fetches theme from API/database
+  const { theme, css } = await getLiveryData({ themeId, schema, resolver });
+
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* CSS generated per-theme at request time */}
+        <style dangerouslySetInnerHTML={{ __html: css }} />
+      </head>
+      <body className="font-sans antialiased">
+        {children}
+      </body>
+    </html>
+  );
+}
+```
+
+---
+
+## Best Practices
+
+### 1. Keep @theme Mappings Consistent
+
+Name your Tailwind theme variables consistently with Livery's naming:
+
+```css
+@theme {
+  /* Good: Clear mapping */
+  --color-primary: var(--colors-primary);
+  --color-text: var(--colors-text);
+
+  /* Avoid: Confusing names */
+  --color-main: var(--colors-primary);  /* What is "main"? */
+}
+```
+
+### 2. Use Tailwind's Color Opacity Modifier
+
+Tailwind v4 supports opacity modifiers with CSS variables:
+
+```html
+<div class="bg-primary/10">
+  10% opacity primary background
+</div>
+```
+
+### 3. Create Component Abstractions
+
+```css
+@layer components {
+  .btn {
+    @apply px-md py-sm rounded-md font-medium transition-colors;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary hover:bg-primary-hover text-white;
+  }
+
+  .card {
+    @apply bg-surface border border-border rounded-lg p-lg;
+  }
+}
+```
+
+### 4. Avoid Hardcoded Values
+
+```html
+<!-- Bad: Hardcoded color -->
+<button class="bg-blue-500">Click</button>
+
+<!-- Good: Uses theme -->
+<button class="bg-primary">Click</button>
+```
+
+### 5. Test Both Themes
+
+Always test your UI in all theme variants. Components that look good in light mode might have contrast issues in dark mode.

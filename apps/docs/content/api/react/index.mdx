@@ -1,0 +1,1052 @@
+## Interfaces
+
+### CookieOptions
+
+Defined in: [react/src/static/types.ts:49](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L49)
+
+Cookie security options for theme persistence
+
+#### Properties
+
+##### maxAge?
+
+> `readonly` `optional` **maxAge**: `number`
+
+Defined in: [react/src/static/types.ts:55](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L55)
+
+Max age in seconds. Default: 31536000 (1 year)
+
+##### path?
+
+> `readonly` `optional` **path**: `string`
+
+Defined in: [react/src/static/types.ts:57](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L57)
+
+Cookie path. Default: '/'
+
+##### sameSite?
+
+> `readonly` `optional` **sameSite**: `"Strict"` \| `"Lax"` \| `"None"`
+
+Defined in: [react/src/static/types.ts:51](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L51)
+
+SameSite attribute for CSRF protection. Default: 'Lax'
+
+##### secure?
+
+> `readonly` `optional` **secure**: `boolean`
+
+Defined in: [react/src/static/types.ts:53](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L53)
+
+Force Secure flag. Default: auto-detect from protocol (true on HTTPS)
+
+***
+
+### CreateDynamicThemeProviderOptions
+
+Defined in: [react/src/types/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L28)
+
+Options for createDynamicThemeProvider factory function
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Properties
+
+##### schema
+
+> `readonly` **schema**: [`Schema`](#schema-1)\<`T`\>
+
+Defined in: [react/src/types/index.ts:30](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L30)
+
+The schema defining the theme structure
+
+***
+
+### CreateStaticThemeProviderOptions
+
+Defined in: [react/src/static/types.ts:14](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L14)
+
+Options for createStaticThemeProvider factory function
+
+#### Type Parameters
+
+##### TThemes
+
+`TThemes` *extends* readonly `string`[]
+
+#### Properties
+
+##### defaultTheme
+
+> `readonly` **defaultTheme**: `TThemes`\[`number`\]
+
+Defined in: [react/src/static/types.ts:20](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L20)
+
+Default theme to use as fallback
+
+##### themes
+
+> `readonly` **themes**: `TThemes`
+
+Defined in: [react/src/static/types.ts:18](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L18)
+
+Array of available theme names (use `as const` for type inference)
+
+***
+
+### CssVariableOptions
+
+Defined in: core/dist/index.d.ts:175
+
+Options for CSS variable generation
+
+#### Properties
+
+##### prefix?
+
+> `readonly` `optional` **prefix**: `string`
+
+Defined in: core/dist/index.d.ts:177
+
+Prefix for CSS variable names (default: none)
+
+##### separator?
+
+> `readonly` `optional` **separator**: `string`
+
+Defined in: core/dist/index.d.ts:179
+
+Separator between path segments (default: '-')
+
+##### transformName()?
+
+> `readonly` `optional` **transformName**: (`path`) => `string`
+
+Defined in: core/dist/index.d.ts:181
+
+Transform function for variable names
+
+###### Parameters
+
+###### path
+
+`string`
+
+###### Returns
+
+`string`
+
+***
+
+### DynamicThemeContextValue
+
+Defined in: [react/src/types/index.ts:104](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L104)
+
+Context value provided by DynamicThemeProvider
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Properties
+
+##### cssVariables
+
+> `readonly` **cssVariables**: `Record`\<`string`, `string`\>
+
+Defined in: [react/src/types/index.ts:112](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L112)
+
+CSS variables as key-value object (empty if not ready)
+
+##### error
+
+> `readonly` **error**: `Error` \| `null`
+
+Defined in: [react/src/types/index.ts:128](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L128)
+
+The error if state.status === 'error', otherwise null
+
+##### isError
+
+> `readonly` **isError**: `boolean`
+
+Defined in: [react/src/types/index.ts:126](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L126)
+
+state.status === 'error'
+
+##### isIdle
+
+> `readonly` **isIdle**: `boolean`
+
+Defined in: [react/src/types/index.ts:120](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L120)
+
+state.status === 'idle'
+
+##### isLoading
+
+> `readonly` **isLoading**: `boolean`
+
+Defined in: [react/src/types/index.ts:122](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L122)
+
+state.status === 'loading'
+
+##### isReady
+
+> `readonly` **isReady**: `boolean`
+
+Defined in: [react/src/types/index.ts:124](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L124)
+
+state.status === 'ready'
+
+##### refresh()
+
+> `readonly` **refresh**: () => `Promise`\<`void`\>
+
+Defined in: [react/src/types/index.ts:114](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L114)
+
+Function to manually refresh the theme
+
+###### Returns
+
+`Promise`\<`void`\>
+
+##### setThemeId()
+
+> `readonly` **setThemeId**: (`themeId`) => `void`
+
+Defined in: [react/src/types/index.ts:110](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L110)
+
+Function to change theme ID (triggers fetch)
+
+###### Parameters
+
+###### themeId
+
+`string`
+
+###### Returns
+
+`void`
+
+##### state
+
+> `readonly` **state**: [`ThemeState`](#themestate)\<`T`\>
+
+Defined in: [react/src/types/index.ts:106](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L106)
+
+Current theme state (discriminated union)
+
+##### theme
+
+> `readonly` **theme**: [`InferTheme`](#infertheme)\<`T`\> \| `null`
+
+Defined in: [react/src/types/index.ts:118](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L118)
+
+The resolved theme (null if not ready)
+
+##### themeId
+
+> `readonly` **themeId**: `string`
+
+Defined in: [react/src/types/index.ts:108](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L108)
+
+Current theme identifier
+
+***
+
+### DynamicThemeProviderExports
+
+Defined in: [react/src/types/index.ts:134](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L134)
+
+Return type of createDynamicThemeProvider factory
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Properties
+
+##### DynamicThemeProvider
+
+> `readonly` **DynamicThemeProvider**: `FC`\<[`DynamicThemeProviderProps`](#dynamicthemeproviderprops)\<`T`\>\>
+
+Defined in: [react/src/types/index.ts:136](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L136)
+
+React context provider component
+
+##### ThemeContext
+
+> `readonly` **ThemeContext**: `Context`\<[`DynamicThemeContextValue`](#dynamicthemecontextvalue)\<`T`\> \| `null`\>
+
+Defined in: [react/src/types/index.ts:144](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L144)
+
+The underlying React context (for advanced use)
+
+##### useTheme()
+
+> `readonly` **useTheme**: () => [`DynamicThemeContextValue`](#dynamicthemecontextvalue)\<`T`\>
+
+Defined in: [react/src/types/index.ts:138](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L138)
+
+Hook to access full theme and metadata
+
+###### Returns
+
+[`DynamicThemeContextValue`](#dynamicthemecontextvalue)\<`T`\>
+
+##### useThemeReady()
+
+> `readonly` **useThemeReady**: () => `boolean`
+
+Defined in: [react/src/types/index.ts:142](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L142)
+
+Hook to check if theme is ready
+
+###### Returns
+
+`boolean`
+
+##### useThemeValue()
+
+> `readonly` **useThemeValue**: \<`P`\>(`path`) => [`PathValue`](#pathvalue)\<`T`, `P`\>
+
+Defined in: [react/src/types/index.ts:140](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L140)
+
+Hook to access a single theme value by path
+
+###### Type Parameters
+
+###### P
+
+`P`
+
+###### Parameters
+
+###### path
+
+`P`
+
+###### Returns
+
+[`PathValue`](#pathvalue)\<`T`, `P`\>
+
+***
+
+### DynamicThemeProviderProps
+
+Defined in: [react/src/types/index.ts:55](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L55)
+
+Props for the DynamicThemeProvider component
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Properties
+
+##### children
+
+> `readonly` **children**: `ReactNode`
+
+Defined in: [react/src/types/index.ts:79](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L79)
+
+Children
+
+##### cookieOptions?
+
+> `readonly` `optional` **cookieOptions**: `CookieOptions`
+
+Defined in: [react/src/types/index.ts:75](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L75)
+
+Cookie security options (only used when persist='cookie')
+
+##### cssOptions?
+
+> `readonly` `optional` **cssOptions**: [`CssVariableOptions`](#cssvariableoptions)
+
+Defined in: [react/src/types/index.ts:69](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L69)
+
+CSS variable options (prefix, separator, etc.)
+
+##### fallback?
+
+> `readonly` `optional` **fallback**: `ReactNode`
+
+Defined in: [react/src/types/index.ts:63](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L63)
+
+Fallback UI while loading
+
+##### initialTheme?
+
+> `readonly` `optional` **initialTheme**: [`InferTheme`](#infertheme)\<`T`\>
+
+Defined in: [react/src/types/index.ts:61](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L61)
+
+Pre-resolved theme for SSR (avoids hydration mismatch)
+
+##### initialThemeId
+
+> `readonly` **initialThemeId**: `string`
+
+Defined in: [react/src/types/index.ts:57](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L57)
+
+Initial theme identifier - use setThemeId from useTheme() to change
+
+##### injection?
+
+> `readonly` `optional` **injection**: [`InjectionMode`](#injectionmode)
+
+Defined in: [react/src/types/index.ts:67](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L67)
+
+CSS injection strategy (default: 'style-tag')
+
+##### nonce?
+
+> `readonly` `optional` **nonce**: `string`
+
+Defined in: [react/src/types/index.ts:77](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L77)
+
+CSP nonce for style injection (for strict Content Security Policies)
+
+##### onError()?
+
+> `readonly` `optional` **onError**: (`error`) => `void`
+
+Defined in: [react/src/types/index.ts:65](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L65)
+
+Error callback
+
+###### Parameters
+
+###### error
+
+`Error`
+
+###### Returns
+
+`void`
+
+##### persist?
+
+> `readonly` `optional` **persist**: `PersistMode`
+
+Defined in: [react/src/types/index.ts:71](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L71)
+
+Where to persist theme preference on change (default: 'none')
+
+##### resolver
+
+> `readonly` **resolver**: [`ThemeResolver`](#themeresolver)\<`T`\>
+
+Defined in: [react/src/types/index.ts:59](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L59)
+
+Theme resolver from @livery/core
+
+##### storageKey?
+
+> `readonly` `optional` **storageKey**: `string`
+
+Defined in: [react/src/types/index.ts:73](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L73)
+
+Storage key name (default: 'theme')
+
+***
+
+### Schema
+
+Defined in: core/dist/index.d.ts:96
+
+A validated schema created by createSchema()
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1) = [`SchemaDefinition`](#schemadefinition-1)
+
+#### Properties
+
+##### \[SCHEMA\_BRAND\]
+
+> `readonly` **\[SCHEMA\_BRAND\]**: `true`
+
+Defined in: core/dist/index.d.ts:97
+
+##### definition
+
+> `readonly` **definition**: `T`
+
+Defined in: core/dist/index.d.ts:98
+
+***
+
+### StaticThemeContextValue
+
+Defined in: [react/src/static/types.ts:87](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L87)
+
+Context value provided by StaticThemeProvider
+
+#### Type Parameters
+
+##### TThemes
+
+`TThemes` *extends* readonly `string`[]
+
+#### Properties
+
+##### setTheme()
+
+> `readonly` **setTheme**: (`theme`) => `void`
+
+Defined in: [react/src/static/types.ts:91](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L91)
+
+Function to change theme
+
+###### Parameters
+
+###### theme
+
+`TThemes`\[`number`\]
+
+###### Returns
+
+`void`
+
+##### theme
+
+> `readonly` **theme**: `TThemes`\[`number`\]
+
+Defined in: [react/src/static/types.ts:89](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L89)
+
+Current theme name
+
+##### themes
+
+> `readonly` **themes**: `TThemes`
+
+Defined in: [react/src/static/types.ts:93](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L93)
+
+Array of available theme names
+
+***
+
+### StaticThemeProviderExports
+
+Defined in: [react/src/static/types.ts:26](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L26)
+
+Return type of createStaticThemeProvider factory
+
+#### Type Parameters
+
+##### TThemes
+
+`TThemes` *extends* readonly `string`[]
+
+#### Properties
+
+##### StaticThemeProvider
+
+> `readonly` **StaticThemeProvider**: `FC`\<[`StaticThemeProviderProps`](#staticthemeproviderprops)\<`TThemes`\>\>
+
+Defined in: [react/src/static/types.ts:30](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L30)
+
+React context provider component
+
+##### ThemeContext
+
+> `readonly` **ThemeContext**: `Context`\<[`StaticThemeContextValue`](#staticthemecontextvalue)\<`TThemes`\> \| `null`\>
+
+Defined in: [react/src/static/types.ts:34](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L34)
+
+The underlying React context (for advanced use)
+
+##### useTheme()
+
+> `readonly` **useTheme**: () => [`StaticThemeContextValue`](#staticthemecontextvalue)\<`TThemes`\>
+
+Defined in: [react/src/static/types.ts:32](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L32)
+
+Hook to access theme and setTheme
+
+###### Returns
+
+[`StaticThemeContextValue`](#staticthemecontextvalue)\<`TThemes`\>
+
+***
+
+### StaticThemeProviderProps
+
+Defined in: [react/src/static/types.ts:63](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L63)
+
+Props for the StaticThemeProvider component
+
+#### Type Parameters
+
+##### TThemes
+
+`TThemes` *extends* readonly `string`[]
+
+#### Properties
+
+##### attribute?
+
+> `readonly` `optional` **attribute**: `string`
+
+Defined in: [react/src/static/types.ts:73](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L73)
+
+DOM attribute to sync (default: 'data-theme')
+
+##### children
+
+> `readonly` **children**: `ReactNode`
+
+Defined in: [react/src/static/types.ts:65](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L65)
+
+Children
+
+##### cookieOptions?
+
+> `readonly` `optional` **cookieOptions**: [`CookieOptions`](#cookieoptions)
+
+Defined in: [react/src/static/types.ts:75](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L75)
+
+Cookie security options (only used when persist='cookie')
+
+##### initialTheme?
+
+> `readonly` `optional` **initialTheme**: `TThemes`\[`number`\]
+
+Defined in: [react/src/static/types.ts:67](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L67)
+
+Initial theme for SSR (skips DOM detection)
+
+##### nonce?
+
+> `readonly` `optional` **nonce**: `string`
+
+Defined in: [react/src/static/types.ts:77](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L77)
+
+CSP nonce for style injection (for strict Content Security Policies)
+
+##### persist?
+
+> `readonly` `optional` **persist**: [`PersistMode`](#persistmode)
+
+Defined in: [react/src/static/types.ts:69](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L69)
+
+Where to persist theme preference on change (default: 'localStorage')
+
+##### storageKey?
+
+> `readonly` `optional` **storageKey**: `string`
+
+Defined in: [react/src/static/types.ts:71](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L71)
+
+Storage key name (default: 'theme')
+
+***
+
+### ThemeResolver
+
+Defined in: core/dist/index.d.ts:155
+
+A theme resolver instance
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Methods
+
+##### clearCache()
+
+> **clearCache**(): `void`
+
+Defined in: core/dist/index.d.ts:165
+
+Clear all cached themes
+
+###### Returns
+
+`void`
+
+##### get()
+
+> **get**\<`P`\>(`params`): `Promise`\<[`PathValue`](#pathvalue)\<`T`, `P`\>\>
+
+Defined in: core/dist/index.d.ts:167
+
+Get a value at a specific path
+
+###### Type Parameters
+
+###### P
+
+`P`
+
+###### Parameters
+
+###### params
+
+###### path
+
+`P`
+
+###### themeId
+
+`string`
+
+###### Returns
+
+`Promise`\<[`PathValue`](#pathvalue)\<`T`, `P`\>\>
+
+##### invalidate()
+
+> **invalidate**(`params`): `void`
+
+Defined in: core/dist/index.d.ts:161
+
+Invalidate cached theme for a theme ID
+
+###### Parameters
+
+###### params
+
+###### themeId
+
+`string`
+
+###### Returns
+
+`void`
+
+##### resolve()
+
+> **resolve**(`params`): `Promise`\<[`InferTheme`](#infertheme)\<`T`\>\>
+
+Defined in: core/dist/index.d.ts:157
+
+Resolve theme for a theme ID, using cache if available
+
+###### Parameters
+
+###### params
+
+###### themeId
+
+`string`
+
+###### Returns
+
+`Promise`\<[`InferTheme`](#infertheme)\<`T`\>\>
+
+***
+
+### ThemeStoreState
+
+Defined in: [react/src/types/index.ts:155](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L155)
+
+Internal state shape for the theme store.
+Uses ThemeState discriminated union for type-safe state management.
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Properties
+
+##### cssVariables
+
+> `readonly` **cssVariables**: `Record`\<`string`, `string`\>
+
+Defined in: [react/src/types/index.ts:158](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L158)
+
+##### state
+
+> `readonly` **state**: [`ThemeState`](#themestate)\<`T`\>
+
+Defined in: [react/src/types/index.ts:156](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L156)
+
+##### themeId
+
+> `readonly` **themeId**: `string` \| `null`
+
+Defined in: [react/src/types/index.ts:157](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L157)
+
+## Type Aliases
+
+### InferTheme
+
+> **InferTheme**\<`T`\> = `\{ [K in keyof T]: T[K] extends TokenDefinition ? TokenTypeToValue<T[K]> : T[K] extends SchemaDefinition ? InferTheme<T[K]> : never \}`
+
+Defined in: core/dist/index.d.ts:108
+
+Infers the theme type from a schema definition
+Recursively processes nested groups
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+***
+
+### InjectionMode
+
+> **InjectionMode** = `"style-tag"` \| `"inline"` \| `"none"`
+
+Defined in: [react/src/types/index.ts:23](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L23)
+
+CSS injection strategy for the DynamicThemeProvider
+
+***
+
+### PathValue
+
+> **PathValue**\<`T`, `P`\> = `P` *extends* `` `$\{infer Head\}.$\{infer Tail\}` `` ? `Head` *extends* keyof `T` ? `T`\[`Head`\] *extends* [`SchemaDefinition`](#schemadefinition-1) ? [`PathValue`](#pathvalue)\<`T`\[`Head`\], `Tail`\> : `never` : `never` : `P` *extends* keyof `T` ? `T`\[`P`\] *extends* `TokenDefinition` ? `TokenTypeToValue`\<`T`\[`P`\]\> : `T`\[`P`\] *extends* [`SchemaDefinition`](#schemadefinition-1) ? [`InferTheme`](#infertheme)\<`T`\[`P`\]\> : `never` : `never`
+
+Defined in: core/dist/index.d.ts:117
+
+Gets the value type at a specific path in the theme
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+##### P
+
+`P` *extends* `string`
+
+***
+
+### PersistMode
+
+> **PersistMode** = `"localStorage"` \| `"cookie"` \| `"none"`
+
+Defined in: [react/src/static/types.ts:44](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/types.ts#L44)
+
+Persistence strategy for theme preference
+
+***
+
+### SchemaDefinition
+
+> **SchemaDefinition** = `object`
+
+Defined in: core/dist/index.d.ts:86
+
+A schema definition can contain tokens or nested groups
+
+#### Index Signature
+
+\[`key`: `string`\]: [`SchemaDefinition`](#schemadefinition-1) \| `TokenDefinition`
+
+***
+
+### ThemePath
+
+> **ThemePath**\<`T`, `Prefix`\> = `` \{ [K in keyof T & string]: T[K] extends TokenDefinition ? Prefix extends "" ? K : `$\{Prefix\}.$\{K\}` : T[K] extends SchemaDefinition ? ThemePath<T[K], Prefix extends "" ? K : `$\{Prefix\}.$\{K\}`> : never \} ``\[keyof `T` & `string`\]
+
+Defined in: core/dist/index.d.ts:113
+
+Helper to extract all valid paths from a schema
+Returns dot-notation paths like "colors.primary" or "spacing.md"
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+##### Prefix
+
+`Prefix` *extends* `string` = `""`
+
+***
+
+### ThemeState
+
+> **ThemeState**\<`T`\> = \{ `status`: `"idle"`; \} \| \{ `status`: `"loading"`; \} \| \{ `status`: `"ready"`; `theme`: [`InferTheme`](#infertheme)\<`T`\>; \} \| \{ `error`: `Error`; `status`: `"error"`; \}
+
+Defined in: [react/src/types/index.ts:95](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/types/index.ts#L95)
+
+Theme state machine - discriminated union ensuring only valid states exist.
+
+Valid states:
+- idle: No theme loaded yet, no fetch in progress
+- loading: Theme fetch in progress
+- ready: Theme successfully loaded
+- error: Theme fetch failed
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+## Functions
+
+### createDynamicThemeProvider()
+
+> **createDynamicThemeProvider**\<`T`\>(`options`): [`DynamicThemeProviderExports`](#dynamicthemeproviderexports)\<`T`\>
+
+Defined in: [react/src/provider/create-provider.ts:80](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/provider/create-provider.ts#L80)
+
+Creates a fully-typed dynamic theme provider and hooks for a schema.
+
+Use this for themes fetched at runtime from an API or database (e.g., multi-tenant SaaS).
+The provider handles async fetching, loading states, caching, and error handling.
+
+For static bundled themes (light/dark mode), use `createStaticThemeProvider` instead.
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Parameters
+
+##### options
+
+[`CreateDynamicThemeProviderOptions`](#createdynamicthemeprovideroptions)\<`T`\>
+
+Options containing the schema
+
+#### Returns
+
+[`DynamicThemeProviderExports`](#dynamicthemeproviderexports)\<`T`\>
+
+Object with DynamicThemeProvider, useTheme, useThemeValue, useThemeReady, and ThemeContext
+
+#### Example
+
+```tsx
+import { createSchema, t, createResolver } from '@livery/core';
+import { createDynamicThemeProvider } from '@livery/react';
+
+// Define your schema
+const schema = createSchema({
+  definition: {
+    brand: {
+      primary: t.color().default('#3b82f6'),
+      secondary: t.color().default('#64748b'),
+    },
+    spacing: {
+      md: t.dimension().default('16px'),
+    },
+  },
+});
+
+// Create resolver to fetch themes
+const resolver = createResolver({
+  schema,
+  fetcher: async (themeId) => {
+    const res = await fetch(`/api/themes/${themeId}`);
+    return res.json();
+  },
+  cache: { ttl: 60000 },
+});
+
+// Create typed provider and hooks
+const { DynamicThemeProvider, useTheme, useThemeValue } = createDynamicThemeProvider({ schema });
+
+// Use in your app
+function App() {
+  return (
+    <DynamicThemeProvider initialThemeId="acme" resolver={resolver}>
+      <MyComponent />
+    </DynamicThemeProvider>
+  );
+}
+
+function MyComponent() {
+  // Full type inference!
+  const primary = useThemeValue('brand.primary'); // string
+  const { theme, isLoading, setThemeId } = useTheme();
+
+  if (isLoading) return <Spinner />;
+
+  return <div style={{ color: primary }}>Hello</div>;
+}
+```
+
+***
+
+### createStaticThemeProvider()
+
+> **createStaticThemeProvider**\<`TThemes`\>(`options`): [`StaticThemeProviderExports`](#staticthemeproviderexports)\<`TThemes`\>
+
+Defined in: [react/src/static/create-static-provider.ts:57](https://github.com/Livery-Dev/livery/blob/main/packages/react/src/static/create-static-provider.ts#L57)
+
+Creates a typed StaticThemeProvider and useTheme hook for static themes.
+
+Use this for bundled themes (light/dark mode) where all theme CSS is
+generated upfront with `toCssStringAll()`. Theme switching is instant
+since it just changes the `data-theme` attribute.
+
+For dynamic themes fetched from an API or database, use `createDynamicThemeProvider` instead.
+
+#### Type Parameters
+
+##### TThemes
+
+`TThemes` *extends* readonly `string`[]
+
+#### Parameters
+
+##### options
+
+[`CreateStaticThemeProviderOptions`](#createstaticthemeprovideroptions)\<`TThemes`\>
+
+#### Returns
+
+[`StaticThemeProviderExports`](#staticthemeproviderexports)\<`TThemes`\>
+
+#### Example
+
+```tsx
+import { toCssStringAll } from '@livery/core';
+import { createStaticThemeProvider, getThemeInitScript } from '@livery/react';
+
+// 1. Generate CSS (include in <head>)
+export const css = toCssStringAll({ schema, themes, defaultTheme: 'light' });
+
+// 2. Generate init script (include in <head>)
+export const initScript = getThemeInitScript({
+  themes: ['light', 'dark'],
+  defaultTheme: 'light',
+});
+
+// 3. Create provider and hook
+export const { StaticThemeProvider, useTheme } = createStaticThemeProvider({
+  themes: ['light', 'dark'] as const,
+  defaultTheme: 'light',
+});
+
+// In your layout:
+// <head>
+//   <style dangerouslySetInnerHTML={{ __html: css }} />
+//   <script dangerouslySetInnerHTML={{ __html: initScript }} />
+// </head>
+// <body>
+//   <StaticThemeProvider>{children}</StaticThemeProvider>
+// </body>
+```

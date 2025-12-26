@@ -1,0 +1,557 @@
+# A/B Testing with Themes (Next.js)
+
+Run visual experiments to optimize your product. This guide shows how to use Livery for A/B testing UI variations, integrating with analytics platforms, and measuring conversion impact.
+
+import { Callout } from 'nextra/components'
+import { UsageMatrix } from '@/components/usage-matrix'
+
+<UsageMatrix highlight="ssr-dynamic" />
+
+<Callout>
+  **Using React without a server?** The same patterns apply — assign variants client-side and use `DynamicThemeProvider` with the variant as `themeId`.
+</Callout>
+
+## Why Theme-Based A/B Testing?
+
+Traditional A/B testing often involves:
+- Feature flags for component swaps
+- Complex conditional rendering
+- Duplicate component code
+
+With Livery, you can test visual variations without code changes:
+- Different color schemes to test brand impact
+- Button styles to optimize conversions
+- Typography changes to improve readability
+- Layout spacing to enhance engagement
+
+## Architecture
+
+```
+User visits  -->  Assign to variant  -->  Load variant theme  -->  Track events
+```
+
+## 1. Define Theme Variants
+
+Create variants as separate themes:
+
+```typescript filename="lib/experiments/themes.ts"
+import type { InferTheme } from '@livery/core';
+import { schema } from '@/lib/theme/schema';
+
+type Theme = InferTheme<typeof schema.definition>;
+
+// Control: Current production design
+export const controlTheme: Theme = {
+  colors: {
+    primary: '#3B82F6',      // Blue
+    primaryHover: '#2563EB',
+    background: '#FFFFFF',
+    surface: '#F8FAFC',
+    text: '#0F172A',
+    textMuted: '#64748B',
+    border: '#E2E8F0',
+  },
+  borderRadius: {
+    sm: '0.25rem',
+    md: '0.5rem',
+    lg: '0.75rem',
+    full: '9999px',
+  },
+  // ... rest of theme
+};
+
+// Variant A: High-contrast with green CTA
+export const variantATheme: Theme = {
+  ...controlTheme,
+  colors: {
+    ...controlTheme.colors,
+    primary: '#22C55E',      // Green - test if this converts better
+    primaryHover: '#16A34A',
+  },
+};
+
+// Variant B: Rounded design with purple accent
+export const variantBTheme: Theme = {
+  ...controlTheme,
+  colors: {
+    ...controlTheme.colors,
+    primary: '#8B5CF6',      // Purple
+    primaryHover: '#7C3AED',
+  },
+  borderRadius: {
+    sm: '0.5rem',
+    md: '1rem',
+    lg: '1.5rem',
+    full: '9999px',
+  },
+};
+
+export const experimentThemes = {
+  control: controlTheme,
+  'variant-a': variantATheme,
+  'variant-b': variantBTheme,
+};
+
+export type VariantId = keyof typeof experimentThemes;
+```
+
+## 2. Variant Assignment
+
+Assign users to variants consistently.
+
+### Cookie-Based Assignment
+
+```typescript filename="lib/experiments/assignment.ts"
+import { cookies } from 'next/headers';
+import type { VariantId } from './themes';
+
+const EXPERIMENT_COOKIE = 'exp_cta_color_v1';
+const VARIANTS: VariantId[] = ['control', 'variant-a', 'variant-b'];
+const WEIGHTS = [0.34, 0.33, 0.33]; // Traffic distribution
+
+export async function getVariant(): Promise<VariantId> {
+  const cookieStore = await cookies();
+  const existing = cookieStore.get(EXPERIMENT_COOKIE)?.value as VariantId;
+
+  // Return existing assignment if valid
+  if (existing && VARIANTS.includes(existing)) {
+    return existing;
+  }
+
+  // Assign new variant based on weights
+  const random = Math.random();
+  let cumulative = 0;
+
+  for (let i = 0; i < VARIANTS.length; i++) {
+    cumulative += WEIGHTS[i];
+    if (random < cumulative) {
+      return VARIANTS[i];
+    }
+  }
+
+  return 'control';
+}
+
+export async function setVariantCookie(variant: VariantId) {
+  const cookieStore = await cookies();
+  cookieStore.set(EXPERIMENT_COOKIE, variant, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+  });
+}
+```
+
+### Middleware Assignment
+
+For earlier assignment in the request lifecycle:
+
+```typescript filename="middleware.ts"
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+const EXPERIMENT_COOKIE = 'exp_cta_color_v1';
+const VARIANTS = ['control', 'variant-a', 'variant-b'];
+
+export function middleware(request: NextRequest) {
+  const response = NextResponse.next();
+
+  // Check for existing assignment
+  let variant = request.cookies.get(EXPERIMENT_COOKIE)?.value;
+
+  if (!variant || !VARIANTS.includes(variant)) {
+    // Assign new variant
+    const random = Math.random();
+    if (random < 0.34) variant = 'control';
+    else if (random < 0.67) variant = 'variant-a';
+    else variant = 'variant-b';
+
+    // Set cookie
+    response.cookies.set(EXPERIMENT_COOKIE, variant, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  }
+
+  // Pass to app via header
+  response.headers.set('x-experiment-variant', variant);
+
+  return response;
+}
+```
+
+## 3. Provider Setup
+
+Load the assigned variant's theme:
+
+```tsx filename="lib/experiments/provider.tsx"
+'use client';
+
+import { createResolver } from '@livery/core';
+import { createDynamicThemeProvider } from '@livery/react';
+import { schema } from '@/lib/theme/schema';
+import { experimentThemes, VariantId } from './themes';
+import { ReactNode, createContext, useContext } from 'react';
+
+const resolver = createResolver({
+  schema,
+  fetcher: ({ themeId }) =>
+    experimentThemes[themeId as VariantId] ?? experimentThemes.control,
+});
+
+const { DynamicThemeProvider } = createDynamicThemeProvider({ schema });
+
+const ExperimentContext = createContext<{ variant: VariantId }>({
+  variant: 'control',
+});
+
+interface Props {
+  children: ReactNode;
+  variant: VariantId;
+}
+
+export function ExperimentProvider({ children, variant }: Props) {
+  return (
+    <ExperimentContext.Provider value={{ variant }}>
+      <DynamicThemeProvider initialThemeId={variant} resolver={resolver}>
+        {children}
+      </DynamicThemeProvider>
+    </ExperimentContext.Provider>
+  );
+}
+
+export function useExperiment() {
+  return useContext(ExperimentContext);
+}
+```
+
+## 4. Analytics Integration
+
+Track variant exposure and conversions.
+
+### PostHog Integration
+
+```typescript filename="lib/experiments/analytics.ts"
+import posthog from 'posthog-js';
+import type { VariantId } from './themes';
+
+export function initAnalytics() {
+  if (typeof window !== 'undefined') {
+    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    });
+  }
+}
+
+export function trackExperimentExposure(
+  experimentId: string,
+  variant: VariantId
+) {
+  posthog.capture('$experiment_started', {
+    $experiment_id: experimentId,
+    $experiment_variant: variant,
+  });
+}
+
+export function trackConversion(
+  experimentId: string,
+  conversionType: string,
+  metadata?: Record<string, unknown>
+) {
+  posthog.capture('conversion', {
+    experiment_id: experimentId,
+    conversion_type: conversionType,
+    ...metadata,
+  });
+}
+```
+
+### Amplitude Integration
+
+```typescript filename="lib/experiments/amplitude.ts"
+import * as amplitude from '@amplitude/analytics-browser';
+import type { VariantId } from './themes';
+
+export function initAmplitude() {
+  amplitude.init(process.env.NEXT_PUBLIC_AMPLITUDE_KEY!);
+}
+
+export function trackVariantExposure(
+  experimentName: string,
+  variant: VariantId
+) {
+  amplitude.track('Experiment Viewed', {
+    experiment_name: experimentName,
+    variant_id: variant,
+  });
+
+  // Set as user property for segmentation
+  amplitude.setUserProperties({
+    [`exp_${experimentName}`]: variant,
+  });
+}
+
+export function trackConversion(eventName: string, properties?: Record<string, unknown>) {
+  amplitude.track(eventName, properties);
+}
+```
+
+## 5. Root Layout
+
+Wire everything together:
+
+```tsx filename="app/layout.tsx"
+import { headers, cookies } from 'next/headers';
+import { toCssString } from '@livery/core';
+import { schema } from '@/lib/theme/schema';
+import { experimentThemes, type VariantId } from '@/lib/experiments/themes';
+import { ExperimentProvider } from '@/lib/experiments/provider';
+import { AnalyticsProvider } from '@/lib/experiments/analytics-provider';
+import './globals.css';
+
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // Get variant from middleware header or cookie
+  const headersList = await headers();
+  const cookieStore = await cookies();
+
+  const variant = (
+    headersList.get('x-experiment-variant') ||
+    cookieStore.get('exp_cta_color_v1')?.value ||
+    'control'
+  ) as VariantId;
+
+  // Get theme for this variant
+  const theme = experimentThemes[variant] ?? experimentThemes.control;
+  const css = toCssString({ schema, theme });
+
+  return (
+    <html lang="en">
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: `:root { ${css} }` }} />
+      </head>
+      <body className="font-sans antialiased">
+        <ExperimentProvider variant={variant}>
+          <AnalyticsProvider experimentId="cta_color_v1" variant={variant}>
+            {children}
+          </AnalyticsProvider>
+        </ExperimentProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### Analytics Provider (Client-side Tracking)
+
+```tsx filename="lib/experiments/analytics-provider.tsx"
+'use client';
+
+import { useEffect, ReactNode } from 'react';
+import { trackExperimentExposure } from './analytics';
+import type { VariantId } from './themes';
+
+interface Props {
+  children: ReactNode;
+  experimentId: string;
+  variant: VariantId;
+}
+
+export function AnalyticsProvider({ children, experimentId, variant }: Props) {
+  useEffect(() => {
+    // Track exposure once per session
+    const exposureKey = `exp_exposed_${experimentId}`;
+    if (!sessionStorage.getItem(exposureKey)) {
+      trackExperimentExposure(experimentId, variant);
+      sessionStorage.setItem(exposureKey, 'true');
+    }
+  }, [experimentId, variant]);
+
+  return <>{children}</>;
+}
+```
+
+## 6. Conversion Tracking
+
+Track when users complete goal actions:
+
+```tsx filename="components/CTAButton.tsx"
+'use client';
+
+import { useExperiment } from '@/lib/experiments/provider';
+import { trackConversion } from '@/lib/experiments/analytics';
+
+export function CTAButton() {
+  const { variant } = useExperiment();
+
+  function handleClick() {
+    // Track conversion before navigation
+    trackConversion('cta_color_v1', 'cta_clicked', {
+      variant,
+      location: 'hero',
+    });
+
+    // Navigate to signup
+    window.location.href = '/signup';
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className="bg-primary hover:bg-primary-hover text-white px-lg py-md rounded-lg font-semibold transition-colors"
+    >
+      Get Started Free
+    </button>
+  );
+}
+```
+
+## 7. Experiment Configuration
+
+Manage experiments in a central config:
+
+```typescript filename="lib/experiments/config.ts"
+import type { VariantId } from './themes';
+
+interface Experiment {
+  id: string;
+  name: string;
+  description: string;
+  variants: VariantId[];
+  weights: number[];
+  startDate: Date;
+  endDate?: Date;
+  targetAudience?: {
+    countries?: string[];
+    deviceTypes?: ('mobile' | 'desktop' | 'tablet')[];
+    newUsersOnly?: boolean;
+  };
+  primaryMetric: string;
+  secondaryMetrics?: string[];
+}
+
+export const experiments: Record<string, Experiment> = {
+  cta_color_v1: {
+    id: 'cta_color_v1',
+    name: 'CTA Button Color Test',
+    description: 'Testing green and purple CTAs against blue control',
+    variants: ['control', 'variant-a', 'variant-b'],
+    weights: [0.34, 0.33, 0.33],
+    startDate: new Date('2024-01-15'),
+    endDate: new Date('2024-02-15'),
+    primaryMetric: 'signup_conversion_rate',
+    secondaryMetrics: ['cta_click_rate', 'time_to_conversion'],
+  },
+};
+
+export function isExperimentActive(experimentId: string): boolean {
+  const exp = experiments[experimentId];
+  if (!exp) return false;
+
+  const now = new Date();
+  if (now < exp.startDate) return false;
+  if (exp.endDate && now > exp.endDate) return false;
+
+  return true;
+}
+```
+
+## 8. Results Analysis
+
+Query your analytics platform to analyze results:
+
+```typescript filename="lib/experiments/analysis.ts"
+interface ExperimentResults {
+  variant: string;
+  exposures: number;
+  conversions: number;
+  conversionRate: number;
+  confidence: number;
+}
+
+// Example: Fetch results from your analytics platform
+export async function getExperimentResults(
+  experimentId: string
+): Promise<ExperimentResults[]> {
+  // This would query PostHog, Amplitude, or your data warehouse
+  const response = await fetch(`/api/experiments/${experimentId}/results`);
+  return response.json();
+}
+
+// Calculate statistical significance
+export function calculateSignificance(
+  control: ExperimentResults,
+  variant: ExperimentResults
+): number {
+  // Simplified z-test for conversion rates
+  const p1 = control.conversionRate;
+  const p2 = variant.conversionRate;
+  const n1 = control.exposures;
+  const n2 = variant.exposures;
+
+  const pooledP = (p1 * n1 + p2 * n2) / (n1 + n2);
+  const se = Math.sqrt(pooledP * (1 - pooledP) * (1/n1 + 1/n2));
+  const z = (p2 - p1) / se;
+
+  // Convert z-score to confidence level
+  return Math.min(99.9, Math.abs(z) * 30); // Simplified conversion
+}
+```
+
+## 9. Graduating Winners
+
+When an experiment concludes:
+
+```typescript filename="lib/experiments/graduate.ts"
+import { experimentThemes, VariantId } from './themes';
+
+export async function graduateWinner(
+  experimentId: string,
+  winner: VariantId
+) {
+  if (winner === 'control') {
+    // Control won - no changes needed
+    console.log('Control won, keeping current theme');
+    return;
+  }
+
+  const winningTheme = experimentThemes[winner];
+
+  // Option 1: Update default theme in code
+  // - Merge winning theme values into your production theme
+  // - Deploy the change
+
+  // Option 2: Update theme in database (for multi-tenant)
+  // await updateDefaultTheme(winningTheme);
+
+  // Option 3: Feature flag the winner
+  // await setFeatureFlag(`theme_${experimentId}_winner`, winner);
+
+  // Clean up experiment cookie
+  // Users will get the graduated theme on next visit
+}
+```
+
+## Key Takeaways
+
+1. **Consistent assignment** - Users should always see the same variant
+2. **Track exposure** - Know who saw which variant
+3. **Wait for significance** - Don't conclude experiments too early
+4. **Clean up after** - Remove experiment code once graduated
+5. **Document learnings** - Record what you learned for future experiments
+
+## Common Metrics to Track
+
+| Metric | Description | Good For |
+|--------|-------------|----------|
+| Click-through rate | % who click CTA | Button tests |
+| Conversion rate | % who complete signup | Overall effectiveness |
+| Time to action | Seconds until first click | Engagement |
+| Bounce rate | % who leave immediately | First impression |
+| Revenue per visitor | Average revenue | Business impact |

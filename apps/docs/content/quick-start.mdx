@@ -1,0 +1,226 @@
+# Quick Start
+
+Build a themed Next.js app with type-safe design tokens in 5 minutes.
+
+import { UsageMatrix } from '@/components/usage-matrix'
+
+<UsageMatrix highlight="csr-static" />
+
+## What You'll Get
+
+- Type-safe theme schema with full TypeScript inference
+- Semantic CSS classes (`bg-background` instead of `bg-white dark:bg-slate-900`)
+- Light/dark mode with zero flash
+- Zero runtime overhead — all CSS generated upfront
+
+## Prerequisites
+
+- Next.js 14+ with App Router
+- Tailwind CSS v4
+- TypeScript
+
+## Step 1: Install
+
+```bash npm2yarn
+npm install @livery/core @livery/react
+```
+
+## Step 2: Define Your Schema
+
+Create a schema that describes your design tokens:
+
+```typescript filename="lib/theme.ts"
+import { createSchema, t, toCssStringAll, type InferTheme } from '@livery/core';
+import { createStaticThemeProvider, getThemeInitScript } from '@livery/react';
+
+// Define the shape of your themes
+export const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color(),
+      primaryHover: t.color(),
+      background: t.color(),
+      foreground: t.color(),
+      muted: t.color(),
+    },
+    radius: t.dimension(),
+  },
+});
+
+// TypeScript infers the exact type from your schema
+type Theme = InferTheme<typeof schema.definition>;
+
+// Define your themes — TypeScript ensures they match the schema
+const light: Theme = {
+  colors: {
+    primary: '#14B8A6',
+    primaryHover: '#0D9488',
+    background: '#FFFFFF',
+    foreground: '#0F172A',
+    muted: '#64748B',
+  },
+  radius: '0.5rem',
+};
+
+const dark: Theme = {
+  colors: {
+    primary: '#2DD4BF',
+    primaryHover: '#14B8A6',
+    background: '#0F172A',
+    foreground: '#F8FAFC',
+    muted: '#94A3B8',
+  },
+  radius: '0.5rem',
+};
+
+// Generate CSS for ALL themes at once
+export const themesCss = toCssStringAll({
+  schema,
+  themes: { light, dark },
+  defaultTheme: 'light',
+});
+
+// Generate init script to prevent flash of unstyled content
+export const themeInitScript = getThemeInitScript({
+  themes: ['light', 'dark'],
+  defaultTheme: 'light',
+});
+
+// Create typed provider and hook
+export const { StaticThemeProvider, useTheme } = createStaticThemeProvider({
+  themes: ['light', 'dark'] as const,
+  defaultTheme: 'light',
+});
+```
+
+Try removing a property or using the wrong type — TypeScript catches it immediately.
+
+## Step 3: Map to Tailwind
+
+Connect Livery's CSS variables to Tailwind:
+
+```css filename="app/globals.css"
+@import 'tailwindcss';
+
+@theme {
+  --color-primary: var(--colors-primary);
+  --color-primary-hover: var(--colors-primaryHover);
+  --color-background: var(--colors-background);
+  --color-foreground: var(--colors-foreground);
+  --color-muted: var(--colors-muted);
+  --radius-default: var(--radius);
+}
+```
+
+Now `bg-primary`, `text-foreground`, `text-muted` work automatically.
+
+## Step 4: Set Up Your Layout
+
+Add the theme CSS, init script, and provider to your layout:
+
+```tsx filename="app/layout.tsx"
+import { themesCss, themeInitScript, StaticThemeProvider } from '@/lib/theme';
+import './globals.css';
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: themesCss }} />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className="bg-background text-foreground">
+        <StaticThemeProvider>
+          {children}
+        </StaticThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+The init script runs before React hydrates, reading the user's preference from localStorage and setting `data-theme` immediately — no flash.
+
+## Step 5: Build Your UI
+
+Use semantic Tailwind classes. No `dark:` variants needed:
+
+```tsx filename="app/page.tsx"
+import { ThemeToggle } from '@/components/theme-toggle';
+
+export default function Home() {
+  return (
+    <main className="min-h-screen p-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Welcome to Livery</h1>
+        <ThemeToggle />
+      </div>
+      <p className="text-muted mb-6">
+        Type-safe theming with semantic tokens.
+      </p>
+      <button className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-default">
+        Get Started
+      </button>
+    </main>
+  );
+}
+```
+
+Notice: `bg-background`, `text-foreground`, `text-muted`, `bg-primary`. These mean the same thing in every theme.
+
+## Step 6: Add Theme Toggle
+
+Use the `useTheme` hook for easy theme switching:
+
+```tsx filename="components/theme-toggle.tsx"
+'use client';
+
+import { useTheme } from '@/lib/theme';
+
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <button
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      className="bg-muted/20 px-3 py-1.5 rounded-default text-sm"
+    >
+      {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+    </button>
+  );
+}
+```
+
+That's it. The provider handles localStorage persistence and DOM updates automatically.
+
+## What You Built
+
+| Feature | How |
+|---------|-----|
+| **Type-safe tokens** | Schema + `InferTheme` |
+| **Semantic classes** | `bg-background` works in any theme |
+| **Zero flash** | `getThemeInitScript` runs before hydration |
+| **Automatic persistence** | `StaticThemeProvider` syncs to localStorage |
+| **React integration** | `useTheme` hook for components |
+
+## Building a Multi-Tenant App?
+
+This guide covers static themes (light/dark mode) where all CSS is bundled upfront.
+
+If your themes come from an API, database, or are determined by subdomain/URL path, you'll want dynamic themes with `@livery/next`:
+
+```bash npm2yarn
+npm install @livery/next
+```
+
+See **[Dynamic Themes with Next.js](/docs/examples/nextjs-dynamic-themes)** for middleware setup, server-side resolution, and per-tenant theming.
+
+## Next Steps
+
+- **[Why Livery?](/docs/why-livery)** — Understand the semantic tokens advantage
+- **[Tailwind Integration](/docs/integrations/tailwind)** — Advanced Tailwind v4 setup
+- **[Dynamic Themes](/docs/examples/nextjs-dynamic-themes)** — Multi-tenant theming with `@livery/next`

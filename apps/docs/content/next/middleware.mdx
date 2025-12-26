@@ -1,0 +1,385 @@
+# Middleware
+
+Configure Livery middleware to automatically detect theme IDs from incoming requests.
+
+## Do I Need Middleware?
+
+**Short answer:** Only if you're building a multi-tenant app where the theme ID is determined by the URL.
+
+| Scenario | Need middleware? |
+|----------|------------------|
+| Light/dark mode | **No** — theme is a user preference, not URL-based |
+| User-customizable themes | **No** — theme is stored in user profile/cookie |
+| Multi-tenant SaaS (acme.yourapp.com) | **Yes** — theme ID comes from subdomain |
+| White-label product (/t/acme/dashboard) | **Yes** — theme ID comes from URL path |
+| API gateway with theme header | **Yes** — theme ID comes from header |
+
+## What Does Middleware Do?
+
+1. **Extracts** the theme ID from the request (subdomain, path, header, etc.)
+2. **Sets** a header (`x-livery-theme`) so server components can access it
+3. **Optionally redirects** if no theme ID is found
+4. **Optionally rewrites** the URL to hide the theme prefix
+
+```
+Request: acme.yourapp.com/dashboard
+    ↓
+Middleware extracts: themeId = "acme"
+    ↓
+Adds header: x-livery-theme: acme
+    ↓
+Layout reads header → resolves theme for "acme"
+```
+
+## Basic Setup
+
+Create a `middleware.ts` file in your project root:
+
+```typescript filename="middleware.ts"
+import { createLiveryMiddleware } from '@livery/next/middleware';
+
+export const middleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+  subdomain: {
+    baseDomain: 'yourapp.com',
+  },
+});
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+};
+```
+
+## Strategies
+
+### Subdomain
+
+Extract theme ID from subdomain (e.g., `acme.yourapp.com` → `acme`):
+
+```typescript
+export const middleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+  subdomain: {
+    baseDomain: 'yourapp.com',
+    ignore: ['www', 'app', 'api'], // Optional: subdomains to ignore
+  },
+});
+```
+
+### Path
+
+Extract theme ID from URL path (e.g., `/t/acme/dashboard` → `acme`):
+
+```typescript
+export const middleware = createLiveryMiddleware({
+  strategy: 'path',
+  path: {
+    prefix: '/t/',     // Prefix before theme ID
+    rewrite: true,     // Rewrite URL to remove /t/acme
+  },
+});
+```
+
+With path rewriting:
+- Request: `/t/acme/dashboard`
+- Theme ID: `acme`
+- Internal path: `/dashboard`
+
+### Header
+
+Extract theme ID from request header:
+
+```typescript
+export const middleware = createLiveryMiddleware({
+  strategy: 'header',
+  header: {
+    name: 'X-Theme-ID',
+  },
+});
+```
+
+### Query Parameter
+
+Extract theme ID from query string (e.g., `?theme=acme`):
+
+```typescript
+export const middleware = createLiveryMiddleware({
+  strategy: 'query',
+  query: {
+    name: 'theme',
+  },
+});
+```
+
+### Custom
+
+Implement your own extraction logic:
+
+```typescript
+export const middleware = createLiveryMiddleware({
+  strategy: 'custom',
+  getTheme: (request) => {
+    // Example: Extract from cookie
+    const themeCookie = request.cookies.get('theme');
+    return { themeId: themeCookie?.value ?? null };
+  },
+});
+```
+
+## Options
+
+### fallback
+
+Redirect to a fallback path when no theme ID is found:
+
+```typescript
+export const middleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+  fallback: '/select-workspace',
+});
+```
+
+### validate
+
+Validate that a theme exists before continuing:
+
+```typescript
+export const middleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+  validate: async (themeId) => {
+    // Check if theme exists in your database
+    const theme = await db.themes.find(themeId);
+    return !!theme;
+  },
+  fallback: '/theme-not-found',
+});
+```
+
+### themeHeader
+
+Customize the header name used to pass the theme ID:
+
+```typescript
+export const middleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+  themeHeader: 'x-my-theme', // Default: 'x-livery-theme'
+});
+```
+
+### skipPaths
+
+Skip middleware for specific paths:
+
+```typescript
+export const middleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+  skipPaths: [
+    '/_next',
+    '/api',
+    '/public',
+    '/health',
+  ],
+});
+```
+
+## Composing with Other Middleware
+
+Chain Livery middleware with other middleware:
+
+```typescript filename="middleware.ts"
+import { createLiveryMiddleware } from '@livery/next/middleware';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+const liveryMiddleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+});
+
+export async function middleware(request: NextRequest) {
+  // Run your middleware first
+  if (request.nextUrl.pathname === '/health') {
+    return NextResponse.json({ status: 'ok' });
+  }
+
+  // Then run Livery middleware
+  const response = await liveryMiddleware(request);
+  return response ?? NextResponse.next();
+}
+```
+
+## Reading Theme in Components
+
+### Server Components
+
+Use `headers()` from `next/headers`:
+
+```tsx filename="app/page.tsx"
+import { headers } from 'next/headers';
+import { getThemeFromHeaders } from '@livery/next';
+
+export default async function Page() {
+  const headersList = await headers();
+  const themeId = getThemeFromHeaders({ headers: headersList });
+
+  return <div>Theme: {themeId}</div>;
+}
+```
+
+### Route Handlers
+
+Access theme ID from request headers:
+
+```typescript filename="app/api/data/route.ts"
+import { getThemeFromHeaders } from '@livery/next';
+
+export async function GET(request: Request) {
+  const themeId = getThemeFromHeaders({ headers: new Headers(request.headers) });
+
+  // Use themeId to fetch theme-specific data
+  const data = await fetchDataForTheme(themeId);
+
+  return Response.json(data);
+}
+```
+
+## Extraction Helpers
+
+For advanced use cases, import individual extraction functions from `@livery/next/middleware`:
+
+```typescript
+import {
+  extractFromSubdomain,
+  extractFromPath,
+  extractFromHeader,
+  extractFromQuery,
+  createThemeExtractor,
+} from '@livery/next/middleware';
+```
+
+### extractFromSubdomain
+
+Extract theme ID from the subdomain:
+
+```typescript
+import { extractFromSubdomain } from '@livery/next/middleware';
+
+// acme.yourapp.com → { themeId: 'acme' }
+// www.yourapp.com → { themeId: null } (ignored)
+const result = extractFromSubdomain(request, {
+  baseDomain: 'yourapp.com',
+  ignore: ['www', 'app', 'api'], // Default ignored subdomains
+});
+```
+
+### extractFromPath
+
+Extract theme ID from the URL path:
+
+```typescript
+import { extractFromPath } from '@livery/next/middleware';
+
+// /t/acme/dashboard → { themeId: 'acme', rewritePath: '/dashboard' }
+const result = extractFromPath(request, {
+  prefix: '/t/',   // Path prefix (default: '/t/')
+  rewrite: true,   // Include rewritePath (default: true)
+});
+```
+
+### extractFromHeader
+
+Extract theme ID from a request header:
+
+```typescript
+import { extractFromHeader } from '@livery/next/middleware';
+
+// X-Theme-ID: acme → { themeId: 'acme' }
+const result = extractFromHeader(request, {
+  name: 'X-Theme-ID',
+});
+```
+
+### extractFromQuery
+
+Extract theme ID from a query parameter:
+
+```typescript
+import { extractFromQuery } from '@livery/next/middleware';
+
+// ?theme=acme → { themeId: 'acme' }
+const result = extractFromQuery(request, {
+  name: 'theme',
+});
+```
+
+### createThemeExtractor
+
+Create an extractor function for a given strategy:
+
+```typescript
+import { createThemeExtractor } from '@livery/next/middleware';
+
+const extractor = createThemeExtractor('subdomain', {
+  subdomain: {
+    baseDomain: 'yourapp.com',
+    ignore: ['www'],
+  },
+});
+
+// Use in your own middleware
+const result = await extractor(request);
+```
+
+## TypeScript Types
+
+Import types for type safety:
+
+```typescript
+import type {
+  ThemeStrategy,
+  ThemeExtractionResult,
+  ThemeExtractor,
+  CreateLiveryMiddlewareOptions,
+} from '@livery/next';
+
+// Custom extractor with proper typing
+const customExtractor: ThemeExtractor = (request) => {
+  const host = request.headers.get('host');
+  return { themeId: host?.split('.')[0] ?? null };
+};
+```
+
+## Best Practices
+
+### 1. Handle Missing Themes Gracefully
+
+Always provide a fallback for when no theme ID is detected:
+
+```typescript
+export const middleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+  fallback: '/login',
+});
+```
+
+### 2. Validate Themes in Production
+
+Don't trust theme IDs blindly—validate they exist:
+
+```typescript
+validate: async (themeId) => {
+  return await themeService.exists(themeId);
+},
+```
+
+### 3. Use Appropriate Matcher
+
+Optimize performance by only running middleware where needed:
+
+```typescript
+export const config = {
+  matcher: [
+    // Match all paths except static files
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
+};
+```

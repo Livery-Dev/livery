@@ -1,0 +1,273 @@
+# Provider Setup
+
+Configure the DynamicThemeProvider to make theme data available throughout your React app.
+
+## Creating the Provider
+
+Use `createDynamicThemeProvider` to create a typed provider:
+
+```typescript filename="lib/livery.tsx"
+'use client';
+
+import { createDynamicThemeProvider } from '@livery/react';
+import { schema } from './schema';
+import { resolver } from './resolver';
+
+export const {
+  DynamicThemeProvider,
+  useTheme,
+  useThemeValue,
+  useThemeReady,
+  ThemeContext,
+} = createDynamicThemeProvider({ schema });
+
+export { resolver };
+```
+
+## Basic Usage
+
+Wrap your app with the DynamicThemeProvider:
+
+```tsx filename="app/layout.tsx"
+import { DynamicThemeProvider, resolver } from '@/lib/livery';
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <DynamicThemeProvider initialThemeId="default" resolver={resolver}>
+          {children}
+        </DynamicThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+## Provider Props
+
+### themeId (required)
+
+The identifier for the current theme:
+
+```tsx
+<DynamicThemeProvider initialThemeId="my-theme" resolver={resolver}>
+```
+
+### resolver (required)
+
+The theme resolver from `@livery/core`:
+
+```tsx
+<DynamicThemeProvider initialThemeId="default" resolver={resolver}>
+```
+
+### initialTheme
+
+Pre-resolved theme for SSR (prevents hydration mismatch):
+
+```tsx
+<DynamicThemeProvider
+  themeId="default"
+  resolver={resolver}
+  initialTheme={preloadedTheme}
+>
+```
+
+### fallback
+
+UI to show while loading:
+
+```tsx
+<DynamicThemeProvider
+  themeId="default"
+  resolver={resolver}
+  fallback={<LoadingSpinner />}
+>
+```
+
+### onError
+
+Error callback:
+
+```tsx
+<DynamicThemeProvider
+  themeId="default"
+  resolver={resolver}
+  onError={(error) => console.error('Theme error:', error)}
+>
+```
+
+### injection
+
+CSS injection strategy:
+
+```tsx
+// 'style-tag' (default) - Injects into a <style> tag
+<DynamicThemeProvider injection="style-tag" ...>
+
+// 'inline' - Returns CSS string for manual injection
+<DynamicThemeProvider injection="inline" ...>
+
+// 'none' - No CSS injection
+<DynamicThemeProvider injection="none" ...>
+```
+
+### cssOptions
+
+Options for CSS variable generation:
+
+```tsx
+<DynamicThemeProvider
+  themeId="default"
+  resolver={resolver}
+  cssOptions={{
+    prefix: 'theme',      // --theme-colors-primary
+    separator: '-',       // Default
+  }}
+>
+```
+
+### persist
+
+Where to persist theme preference:
+
+```tsx
+// 'none' (default) - No persistence
+<DynamicThemeProvider persist="none" ...>
+
+// 'localStorage' - Persist to localStorage
+<DynamicThemeProvider persist="localStorage" ...>
+
+// 'cookie' - Persist to cookie
+<DynamicThemeProvider persist="cookie" ...>
+```
+
+### storageKey
+
+Storage key name (default: `'theme'`):
+
+```tsx
+<DynamicThemeProvider
+  persist="localStorage"
+  storageKey="my-app-theme"
+  ...
+>
+```
+
+### cookieOptions
+
+Security options for cookie persistence (only used when `persist='cookie'`):
+
+```tsx
+<DynamicThemeProvider
+  persist="cookie"
+  cookieOptions={{
+    sameSite: 'Lax',      // 'Strict' | 'Lax' | 'None'
+    secure: true,          // auto-detected from HTTPS if not set
+    maxAge: 31536000,      // 1 year in seconds
+    path: '/',
+  }}
+  ...
+>
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `sameSite` | `'Lax'` | CSRF protection level |
+| `secure` | Auto | Only send over HTTPS |
+| `maxAge` | `31536000` | Cookie lifetime (seconds) |
+| `path` | `'/'` | Cookie scope |
+
+### nonce
+
+CSP nonce for style injection (for strict Content Security Policies):
+
+```tsx
+<DynamicThemeProvider
+  nonce={cspNonce}
+  initialThemeId="default"
+  resolver={resolver}
+>
+```
+
+See the [Security](/docs/security) page for more details on CSP integration.
+
+## Changing Theme
+
+Update the themeId to switch themes:
+
+```tsx
+function App() {
+  const [themeId, setThemeId] = useState('light');
+
+  return (
+    <DynamicThemeProvider initialThemeId={themeId} resolver={resolver}>
+      <button onClick={() => setThemeId('dark')}>
+        Switch to Dark
+      </button>
+      <Content />
+    </DynamicThemeProvider>
+  );
+}
+```
+
+## Multiple Providers
+
+Nest providers for different sections:
+
+```tsx
+// Global theme
+<DynamicThemeProvider initialThemeId="global" resolver={globalResolver}>
+  {/* Section with different theme */}
+  <DynamicThemeProvider initialThemeId="section" resolver={sectionResolver}>
+    <SectionContent />
+  </DynamicThemeProvider>
+</DynamicThemeProvider>
+```
+
+## Client Components
+
+The provider must be a client component. Create a wrapper:
+
+```tsx filename="components/Providers.tsx"
+'use client';
+
+import { DynamicThemeProvider, resolver } from '@/lib/livery';
+
+export function Providers({ children, themeId }) {
+  return (
+    <DynamicThemeProvider initialThemeId={themeId} resolver={resolver}>
+      {children}
+    </DynamicThemeProvider>
+  );
+}
+```
+
+```tsx filename="app/layout.tsx"
+import { Providers } from '@/components/Providers';
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <Providers themeId="default">
+          {children}
+        </Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+## TypeScript
+
+The provider is fully typed from your schema:
+
+```typescript
+// Type for the provider props
+type Props = DynamicThemeProviderProps<typeof schema.definition>;
+
+// The context value type
+type ContextValue = DynamicThemeContextValue<typeof schema.definition>;
+```

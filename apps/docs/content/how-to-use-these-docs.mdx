@@ -1,0 +1,37 @@
+# How to Use These Docs
+
+Livery usage falls into four patterns based on two questions:
+
+import { UsageMatrix } from '@/components/usage-matrix'
+
+<UsageMatrix />
+
+## The Two Dimensions
+
+### Do you have a server? (SSR vs CSR)
+
+| SSR | CSR |
+|-----|-----|
+| Next.js, Remix, Astro | Vite, Create React App, vanilla JS |
+| Server injects the correct theme | Client applies theme after load |
+
+### Are themes known at build time? (Static vs Dynamic)
+
+| Static | Dynamic |
+|--------|---------|
+| Bundled in your code | Fetched from API, database, or CMS |
+| Light/dark mode, branded variants | Multi-tenant, user customization |
+| `@livery/core` only | `@livery/core` + `@livery/react` |
+
+## Finding the Right Guide
+
+| Your situation | Pattern | Guide |
+|----------------|---------|-------|
+| Next.js + light/dark mode | SSR + Static | [Static Themes in Next.js](/docs/examples/nextjs-static-themes) |
+| Next.js + per-customer themes | SSR + Dynamic | [Multi-Tenant](/docs/examples/multi-tenant) |
+| React SPA + light/dark mode | CSR + Static | [Static Themes in React](/docs/examples/react-static-themes) |
+| React SPA + API themes | CSR + Dynamic | [Dynamic Themes in React](/docs/examples/react-dynamic-themes) |
+
+## Throughout the Docs
+
+Each guide shows this matrix with the current pattern highlighted, so you always know which quadrant you're in.

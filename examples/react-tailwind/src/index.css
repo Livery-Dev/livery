@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/*
+ * Tailwind v4 theme configuration via CSS
+ * Maps Livery CSS variables to Tailwind theme tokens
+ */
+@theme {
+  /* Brand colors from Livery */
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-secondary: var(--brand-secondary);
+
+  /* Spacing scale from Livery */
+  --spacing-livery-sm: var(--spacing-sm);
+  --spacing-livery-md: var(--spacing-md);
+  --spacing-livery-lg: var(--spacing-lg);
+
+  /* Border radius from Livery */
+  --radius-livery-sm: var(--border-radius-sm);
+  --radius-livery-md: var(--border-radius-md);
+  --radius-livery-lg: var(--border-radius-lg);
+
+  /* Typography from Livery */
+  --font-livery-heading: var(--typography-headingFont);
+  --font-livery-body: var(--typography-bodyFont);
+  --font-size-livery-base: var(--typography-baseSize);
+}
+
+/* Base styles */
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+  font-family: var(--typography-bodyFont, system-ui, sans-serif);
+  font-size: var(--typography-baseSize, 16px);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--typography-headingFont, system-ui, sans-serif);
+}

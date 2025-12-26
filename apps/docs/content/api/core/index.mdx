@@ -1,0 +1,2041 @@
+## Interfaces
+
+### BooleanToken
+
+Defined in: [types/index.ts:67](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L67)
+
+Boolean token definition
+
+#### Extends
+
+- `TokenDefinitionBase`\<`"boolean"`, `boolean`\>
+
+#### Properties
+
+##### defaultValue?
+
+> `readonly` `optional` **defaultValue**: `boolean`
+
+Defined in: [types/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L28)
+
+###### Inherited from
+
+`TokenDefinitionBase.defaultValue`
+
+##### description?
+
+> `readonly` `optional` **description**: `string`
+
+Defined in: [types/index.ts:29](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L29)
+
+###### Inherited from
+
+`TokenDefinitionBase.description`
+
+##### type
+
+> `readonly` **type**: `"boolean"`
+
+Defined in: [types/index.ts:68](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L68)
+
+###### Overrides
+
+`TokenDefinitionBase.type`
+
+***
+
+### CacheConfig
+
+Defined in: [types/index.ts:247](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L247)
+
+Cache configuration for theme resolver
+
+#### Properties
+
+##### maxSize?
+
+> `readonly` `optional` **maxSize**: `number`
+
+Defined in: [types/index.ts:253](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L253)
+
+Maximum number of cached entries
+
+##### staleWhileRevalidate?
+
+> `readonly` `optional` **staleWhileRevalidate**: `boolean`
+
+Defined in: [types/index.ts:251](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L251)
+
+Whether to serve stale data while revalidating
+
+##### ttl?
+
+> `readonly` `optional` **ttl**: `number`
+
+Defined in: [types/index.ts:249](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L249)
+
+Time-to-live in milliseconds
+
+***
+
+### ColorToken
+
+Defined in: [types/index.ts:36](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L36)
+
+Color token definition
+Accepts hex, rgb, rgba, hsl, hsla values
+
+#### Extends
+
+- `TokenDefinitionBase`\<`"color"`, `string`\>
+
+#### Properties
+
+##### defaultValue?
+
+> `readonly` `optional` **defaultValue**: `string`
+
+Defined in: [types/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L28)
+
+###### Inherited from
+
+`TokenDefinitionBase.defaultValue`
+
+##### description?
+
+> `readonly` `optional` **description**: `string`
+
+Defined in: [types/index.ts:29](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L29)
+
+###### Inherited from
+
+`TokenDefinitionBase.description`
+
+##### type
+
+> `readonly` **type**: `"color"`
+
+Defined in: [types/index.ts:37](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L37)
+
+###### Overrides
+
+`TokenDefinitionBase.type`
+
+***
+
+### CreateCssVarHelperOptions
+
+Defined in: [css/index.ts:72](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L72)
+
+Options for createCssVarHelper function
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+The type of the schema definition
+
+#### Properties
+
+##### options?
+
+> `optional` **options**: [`CssVariableOptions`](#cssvariableoptions)
+
+Defined in: [css/index.ts:76](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L76)
+
+Optional CSS variable configuration
+
+##### schema
+
+> **schema**: [`Schema`](#schema-2)\<`T`\>
+
+Defined in: [css/index.ts:74](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L74)
+
+The schema to generate variable references for
+
+***
+
+### CreateResolverOptions
+
+Defined in: [resolver/index.ts:26](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/resolver/index.ts#L26)
+
+Options for createResolver function
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+The type of the schema definition
+
+#### Properties
+
+##### cache?
+
+> `optional` **cache**: [`CacheConfig`](#cacheconfig)
+
+Defined in: [resolver/index.ts:32](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/resolver/index.ts#L32)
+
+Optional cache configuration
+
+##### fetcher()
+
+> **fetcher**: (`params`) => `Partial`\<[`InferTheme`](#infertheme)\<`T`\>\> \| `Promise`\<`Partial`\<[`InferTheme`](#infertheme)\<`T`\>\>\>
+
+Defined in: [resolver/index.ts:30](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/resolver/index.ts#L30)
+
+Function that fetches theme data for a given theme ID
+
+###### Parameters
+
+###### params
+
+###### themeId
+
+`string`
+
+###### Returns
+
+`Partial`\<[`InferTheme`](#infertheme)\<`T`\>\> \| `Promise`\<`Partial`\<[`InferTheme`](#infertheme)\<`T`\>\>\>
+
+##### schema
+
+> **schema**: [`Schema`](#schema-2)\<`T`\>
+
+Defined in: [resolver/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/resolver/index.ts#L28)
+
+The schema to validate theme data against
+
+***
+
+### CreateSchemaOptions
+
+Defined in: [schema/index.ts:175](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L175)
+
+Options for createSchema function
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+The type of the schema definition
+
+#### Properties
+
+##### definition
+
+> **definition**: `T`
+
+Defined in: [schema/index.ts:177](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L177)
+
+The schema definition containing tokens and nested groups
+
+***
+
+### CssVariableOptions
+
+Defined in: [types/index.ts:289](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L289)
+
+Options for CSS variable generation
+
+#### Properties
+
+##### prefix?
+
+> `readonly` `optional` **prefix**: `string`
+
+Defined in: [types/index.ts:291](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L291)
+
+Prefix for CSS variable names (default: none)
+
+##### separator?
+
+> `readonly` `optional` **separator**: `string`
+
+Defined in: [types/index.ts:293](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L293)
+
+Separator between path segments (default: '-')
+
+##### transformName()?
+
+> `readonly` `optional` **transformName**: (`path`) => `string`
+
+Defined in: [types/index.ts:295](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L295)
+
+Transform function for variable names
+
+###### Parameters
+
+###### path
+
+`string`
+
+###### Returns
+
+`string`
+
+***
+
+### CssVarOptions
+
+Defined in: [css/index.ts:58](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L58)
+
+Options for cssVar function
+
+#### Properties
+
+##### options?
+
+> `optional` **options**: [`CssVariableOptions`](#cssvariableoptions)
+
+Defined in: [css/index.ts:62](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L62)
+
+Optional CSS variable configuration
+
+##### path
+
+> **path**: `string`
+
+Defined in: [css/index.ts:60](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L60)
+
+Dot-notation path to the token (e.g., "colors.primary")
+
+***
+
+### DimensionToken
+
+Defined in: [types/index.ts:44](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L44)
+
+Dimension token definition
+Accepts values with units: px, rem, em, %, vh, vw, etc.
+
+#### Extends
+
+- `TokenDefinitionBase`\<`"dimension"`, `string`\>
+
+#### Properties
+
+##### defaultValue?
+
+> `readonly` `optional` **defaultValue**: `string`
+
+Defined in: [types/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L28)
+
+###### Inherited from
+
+`TokenDefinitionBase.defaultValue`
+
+##### description?
+
+> `readonly` `optional` **description**: `string`
+
+Defined in: [types/index.ts:29](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L29)
+
+###### Inherited from
+
+`TokenDefinitionBase.description`
+
+##### type
+
+> `readonly` **type**: `"dimension"`
+
+Defined in: [types/index.ts:45](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L45)
+
+###### Overrides
+
+`TokenDefinitionBase.type`
+
+***
+
+### FontFamilyToken
+
+Defined in: [types/index.ts:75](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L75)
+
+Font family token definition
+Accepts font family stacks (e.g., "Inter, sans-serif")
+
+#### Extends
+
+- `TokenDefinitionBase`\<`"fontFamily"`, `string`\>
+
+#### Properties
+
+##### defaultValue?
+
+> `readonly` `optional` **defaultValue**: `string`
+
+Defined in: [types/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L28)
+
+###### Inherited from
+
+`TokenDefinitionBase.defaultValue`
+
+##### description?
+
+> `readonly` `optional` **description**: `string`
+
+Defined in: [types/index.ts:29](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L29)
+
+###### Inherited from
+
+`TokenDefinitionBase.description`
+
+##### type
+
+> `readonly` **type**: `"fontFamily"`
+
+Defined in: [types/index.ts:76](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L76)
+
+###### Overrides
+
+`TokenDefinitionBase.type`
+
+***
+
+### FontWeightToken
+
+Defined in: [types/index.ts:83](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L83)
+
+Font weight token definition
+Accepts numeric weights (100-900) or keywords
+
+#### Extends
+
+- `TokenDefinitionBase`\<`"fontWeight"`, `string` \| `number`\>
+
+#### Properties
+
+##### defaultValue?
+
+> `readonly` `optional` **defaultValue**: `string` \| `number`
+
+Defined in: [types/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L28)
+
+###### Inherited from
+
+`TokenDefinitionBase.defaultValue`
+
+##### description?
+
+> `readonly` `optional` **description**: `string`
+
+Defined in: [types/index.ts:29](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L29)
+
+###### Inherited from
+
+`TokenDefinitionBase.description`
+
+##### type
+
+> `readonly` **type**: `"fontWeight"`
+
+Defined in: [types/index.ts:84](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L84)
+
+###### Overrides
+
+`TokenDefinitionBase.type`
+
+***
+
+### GetTokenAtPathOptions
+
+Defined in: [schema/index.ts:292](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L292)
+
+Options for getTokenAtPath function
+
+#### Properties
+
+##### definition
+
+> **definition**: [`SchemaDefinition`](#schemadefinition-1)
+
+Defined in: [schema/index.ts:294](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L294)
+
+The schema definition to search in
+
+##### path
+
+> **path**: `string`
+
+Defined in: [schema/index.ts:296](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L296)
+
+Dot-notation path to the token (e.g., "colors.primary")
+
+***
+
+### GetTokenPathsOptions
+
+Defined in: [schema/index.ts:245](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L245)
+
+Options for getTokenPaths function
+
+#### Properties
+
+##### definition
+
+> **definition**: [`SchemaDefinition`](#schemadefinition-1)
+
+Defined in: [schema/index.ts:247](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L247)
+
+The schema definition to extract paths from
+
+##### prefix?
+
+> `optional` **prefix**: `string`
+
+Defined in: [schema/index.ts:249](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L249)
+
+Optional prefix to prepend to all paths (used for recursion)
+
+***
+
+### NumberToken
+
+Defined in: [types/index.ts:52](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L52)
+
+Number token definition
+Accepts numeric values (integers or floats)
+
+#### Extends
+
+- `TokenDefinitionBase`\<`"number"`, `number`\>
+
+#### Properties
+
+##### defaultValue?
+
+> `readonly` `optional` **defaultValue**: `number`
+
+Defined in: [types/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L28)
+
+###### Inherited from
+
+`TokenDefinitionBase.defaultValue`
+
+##### description?
+
+> `readonly` `optional` **description**: `string`
+
+Defined in: [types/index.ts:29](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L29)
+
+###### Inherited from
+
+`TokenDefinitionBase.description`
+
+##### type
+
+> `readonly` **type**: `"number"`
+
+Defined in: [types/index.ts:53](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L53)
+
+###### Overrides
+
+`TokenDefinitionBase.type`
+
+***
+
+### Schema
+
+Defined in: [types/index.ts:136](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L136)
+
+A validated schema created by createSchema()
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1) = [`SchemaDefinition`](#schemadefinition-1)
+
+#### Properties
+
+##### \[SCHEMA\_BRAND\]
+
+> `readonly` **\[SCHEMA\_BRAND\]**: `true`
+
+Defined in: [types/index.ts:137](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L137)
+
+##### definition
+
+> `readonly` **definition**: `T`
+
+Defined in: [types/index.ts:138](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L138)
+
+***
+
+### ShadowToken
+
+Defined in: [types/index.ts:91](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L91)
+
+Shadow token definition
+Accepts CSS box-shadow or text-shadow values
+
+#### Extends
+
+- `TokenDefinitionBase`\<`"shadow"`, `string`\>
+
+#### Properties
+
+##### defaultValue?
+
+> `readonly` `optional` **defaultValue**: `string`
+
+Defined in: [types/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L28)
+
+###### Inherited from
+
+`TokenDefinitionBase.defaultValue`
+
+##### description?
+
+> `readonly` `optional` **description**: `string`
+
+Defined in: [types/index.ts:29](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L29)
+
+###### Inherited from
+
+`TokenDefinitionBase.description`
+
+##### type
+
+> `readonly` **type**: `"shadow"`
+
+Defined in: [types/index.ts:92](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L92)
+
+###### Overrides
+
+`TokenDefinitionBase.type`
+
+***
+
+### StringToken
+
+Defined in: [types/index.ts:60](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L60)
+
+String token definition
+Accepts arbitrary string values
+
+#### Extends
+
+- `TokenDefinitionBase`\<`"string"`, `string`\>
+
+#### Properties
+
+##### defaultValue?
+
+> `readonly` `optional` **defaultValue**: `string`
+
+Defined in: [types/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L28)
+
+###### Inherited from
+
+`TokenDefinitionBase.defaultValue`
+
+##### description?
+
+> `readonly` `optional` **description**: `string`
+
+Defined in: [types/index.ts:29](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L29)
+
+###### Inherited from
+
+`TokenDefinitionBase.description`
+
+##### type
+
+> `readonly` **type**: `"string"`
+
+Defined in: [types/index.ts:61](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L61)
+
+###### Overrides
+
+`TokenDefinitionBase.type`
+
+***
+
+### ThemeResolver
+
+Defined in: [types/index.ts:271](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L271)
+
+A theme resolver instance
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Methods
+
+##### clearCache()
+
+> **clearCache**(): `void`
+
+Defined in: [types/index.ts:277](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L277)
+
+Clear all cached themes
+
+###### Returns
+
+`void`
+
+##### get()
+
+> **get**\<`P`\>(`params`): `Promise`\<[`PathValue`](#pathvalue)\<`T`, `P`\>\>
+
+Defined in: [types/index.ts:279](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L279)
+
+Get a value at a specific path
+
+###### Type Parameters
+
+###### P
+
+`P`
+
+###### Parameters
+
+###### params
+
+###### path
+
+`P`
+
+###### themeId
+
+`string`
+
+###### Returns
+
+`Promise`\<[`PathValue`](#pathvalue)\<`T`, `P`\>\>
+
+##### invalidate()
+
+> **invalidate**(`params`): `void`
+
+Defined in: [types/index.ts:275](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L275)
+
+Invalidate cached theme for a theme ID
+
+###### Parameters
+
+###### params
+
+###### themeId
+
+`string`
+
+###### Returns
+
+`void`
+
+##### resolve()
+
+> **resolve**(`params`): `Promise`\<[`InferTheme`](#infertheme)\<`T`\>\>
+
+Defined in: [types/index.ts:273](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L273)
+
+Resolve theme for a theme ID, using cache if available
+
+###### Parameters
+
+###### params
+
+###### themeId
+
+`string`
+
+###### Returns
+
+`Promise`\<[`InferTheme`](#infertheme)\<`T`\>\>
+
+***
+
+### ToCssStringAllOptions
+
+Defined in: [css/index.ts:278](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L278)
+
+Options for toCssStringAll function
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+The type of the schema definition
+
+##### K
+
+`K` *extends* `string`
+
+The union type of theme keys
+
+#### Properties
+
+##### attribute?
+
+> `optional` **attribute**: `string`
+
+Defined in: [css/index.ts:288](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L288)
+
+Attribute name for theme selector (default: 'data-theme')
+
+##### defaultTheme?
+
+> `optional` **defaultTheme**: `K`
+
+Defined in: [css/index.ts:284](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L284)
+
+The default theme key (will be applied to :root)
+
+##### options?
+
+> `optional` **options**: [`CssVariableOptions`](#cssvariableoptions)
+
+Defined in: [css/index.ts:286](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L286)
+
+Optional CSS variable configuration
+
+##### schema
+
+> **schema**: [`Schema`](#schema-2)\<`T`\>
+
+Defined in: [css/index.ts:280](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L280)
+
+The schema to generate variables from
+
+##### themes
+
+> **themes**: `Record`\<`K`, [`InferTheme`](#infertheme)\<`T`\>\>
+
+Defined in: [css/index.ts:282](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L282)
+
+Record of theme names to resolved theme data
+
+***
+
+### ToCssStringOptions
+
+Defined in: [css/index.ts:42](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L42)
+
+Options for toCssString function
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+The type of the schema definition
+
+#### Properties
+
+##### options?
+
+> `optional` **options**: [`CssVariableOptions`](#cssvariableoptions)
+
+Defined in: [css/index.ts:48](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L48)
+
+Optional CSS variable configuration
+
+##### schema
+
+> **schema**: [`Schema`](#schema-2)\<`T`\>
+
+Defined in: [css/index.ts:44](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L44)
+
+The schema to generate variables from
+
+##### selector?
+
+> `optional` **selector**: `string`
+
+Defined in: [css/index.ts:50](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L50)
+
+CSS selector for the rule (defaults to ':root')
+
+##### theme
+
+> **theme**: [`InferTheme`](#infertheme)\<`T`\>
+
+Defined in: [css/index.ts:46](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L46)
+
+The resolved theme data
+
+***
+
+### ToCssVariablesOptions
+
+Defined in: [css/index.ts:26](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L26)
+
+Options for toCssVariables function
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+The type of the schema definition
+
+#### Properties
+
+##### options?
+
+> `optional` **options**: [`CssVariableOptions`](#cssvariableoptions)
+
+Defined in: [css/index.ts:32](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L32)
+
+Optional CSS variable configuration
+
+##### schema
+
+> **schema**: [`Schema`](#schema-2)\<`T`\>
+
+Defined in: [css/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L28)
+
+The schema to generate variables from
+
+##### theme
+
+> **theme**: [`InferTheme`](#infertheme)\<`T`\>
+
+Defined in: [css/index.ts:30](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L30)
+
+The resolved theme data
+
+***
+
+### UrlToken
+
+Defined in: [types/index.ts:99](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L99)
+
+URL token definition
+Accepts URL values (validated format)
+
+#### Extends
+
+- `TokenDefinitionBase`\<`"url"`, `string`\>
+
+#### Properties
+
+##### defaultValue?
+
+> `readonly` `optional` **defaultValue**: `string`
+
+Defined in: [types/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L28)
+
+###### Inherited from
+
+`TokenDefinitionBase.defaultValue`
+
+##### description?
+
+> `readonly` `optional` **description**: `string`
+
+Defined in: [types/index.ts:29](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L29)
+
+###### Inherited from
+
+`TokenDefinitionBase.description`
+
+##### type
+
+> `readonly` **type**: `"url"`
+
+Defined in: [types/index.ts:100](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L100)
+
+###### Overrides
+
+`TokenDefinitionBase.type`
+
+***
+
+### ValidateOptions
+
+Defined in: [validation/index.ts:125](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/validation/index.ts#L125)
+
+Options for validate function
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+The type of the schema definition
+
+#### Properties
+
+##### data
+
+> **data**: `unknown`
+
+Defined in: [validation/index.ts:129](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/validation/index.ts#L129)
+
+The data to validate
+
+##### schema
+
+> **schema**: [`Schema`](#schema-2)\<`T`\>
+
+Defined in: [validation/index.ts:127](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/validation/index.ts#L127)
+
+The schema to validate against
+
+***
+
+### ValidationError
+
+Defined in: [types/index.ts:226](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L226)
+
+A single validation error
+
+#### Properties
+
+##### expected
+
+> `readonly` **expected**: `"object"` \| [`TokenType`](#tokentype)
+
+Defined in: [types/index.ts:229](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L229)
+
+##### message
+
+> `readonly` **message**: `string`
+
+Defined in: [types/index.ts:228](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L228)
+
+##### path
+
+> `readonly` **path**: `string`
+
+Defined in: [types/index.ts:227](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L227)
+
+##### received
+
+> `readonly` **received**: `unknown`
+
+Defined in: [types/index.ts:230](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L230)
+
+## Type Aliases
+
+### InferTheme
+
+> **InferTheme**\<`T`\> = `\{ [K in keyof T]: T[K] extends TokenDefinition ? TokenTypeToValue<T[K]> : T[K] extends SchemaDefinition ? InferTheme<T[K]> : never \}`
+
+Defined in: [types/index.ts:172](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L172)
+
+Infers the theme type from a schema definition
+Recursively processes nested groups
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+***
+
+### PathValue
+
+> **PathValue**\<`T`, `P`\> = `P` *extends* `` `$\{infer Head\}.$\{infer Tail\}` `` ? `Head` *extends* keyof `T` ? `T`\[`Head`\] *extends* [`SchemaDefinition`](#schemadefinition-1) ? [`PathValue`](#pathvalue)\<`T`\[`Head`\], `Tail`\> : `never` : `never` : `P` *extends* keyof `T` ? `T`\[`P`\] *extends* [`TokenDefinition`](#tokendefinition) ? `TokenTypeToValue`\<`T`\[`P`\]\> : `T`\[`P`\] *extends* [`SchemaDefinition`](#schemadefinition-1) ? [`InferTheme`](#infertheme)\<`T`\[`P`\]\> : `never` : `never`
+
+Defined in: [types/index.ts:197](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L197)
+
+Gets the value type at a specific path in the theme
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+##### P
+
+`P` *extends* `string`
+
+***
+
+### SchemaDefinition
+
+> **SchemaDefinition** = `object`
+
+Defined in: [types/index.ts:124](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L124)
+
+A schema definition can contain tokens or nested groups
+
+#### Index Signature
+
+\[`key`: `string`\]: [`TokenDefinition`](#tokendefinition) \| [`SchemaDefinition`](#schemadefinition-1)
+
+***
+
+### ThemePath
+
+> **ThemePath**\<`T`, `Prefix`\> = `` \{ [K in keyof T & string]: T[K] extends TokenDefinition ? Prefix extends "" ? K : `$\{Prefix\}.$\{K\}` : T[K] extends SchemaDefinition ? ThemePath<T[K], Prefix extends "" ? K : `$\{Prefix\}.$\{K\}`> : never \} ``\[keyof `T` & `string`\]
+
+Defined in: [types/index.ts:184](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L184)
+
+Helper to extract all valid paths from a schema
+Returns dot-notation paths like "colors.primary" or "spacing.md"
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+##### Prefix
+
+`Prefix` *extends* `string` = `""`
+
+***
+
+### TokenDefinition
+
+> **TokenDefinition** = [`ColorToken`](#colortoken) \| [`DimensionToken`](#dimensiontoken) \| [`NumberToken`](#numbertoken) \| [`StringToken`](#stringtoken) \| [`BooleanToken`](#booleantoken) \| [`FontFamilyToken`](#fontfamilytoken) \| [`FontWeightToken`](#fontweighttoken) \| [`ShadowToken`](#shadowtoken) \| [`UrlToken`](#urltoken)
+
+Defined in: [types/index.ts:106](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L106)
+
+Union of all token definition types
+
+***
+
+### TokenType
+
+> **TokenType** = `"color"` \| `"dimension"` \| `"number"` \| `"string"` \| `"boolean"` \| `"fontFamily"` \| `"fontWeight"` \| `"shadow"` \| `"url"`
+
+Defined in: [types/index.ts:12](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L12)
+
+Supported token types in the theming system
+
+***
+
+### ValidationMode
+
+> **ValidationMode** = `"strict"` \| `"coerce"` \| `"partial"`
+
+Defined in: [types/index.ts:221](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L221)
+
+Validation mode for theme data
+
+***
+
+### ValidationResult
+
+> **ValidationResult**\<`T`\> = \{ `data`: `T`; `success`: `true`; \} \| \{ `errors`: readonly [`ValidationError`](#validationerror)[]; `success`: `false`; \}
+
+Defined in: [types/index.ts:236](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/types/index.ts#L236)
+
+Result of validation - either success with data or failure with errors
+
+#### Type Parameters
+
+##### T
+
+`T`
+
+## Variables
+
+### t
+
+> `const` **t**: `object`
+
+Defined in: [schema/tokens.ts:203](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/tokens.ts#L203)
+
+Token builders namespace
+
+#### Type Declaration
+
+##### boolean()
+
+> `readonly` **boolean**(): `BooleanTokenBuilder`
+
+Creates a boolean token
+
+###### Returns
+
+`BooleanTokenBuilder`
+
+##### color()
+
+> `readonly` **color**(): `ColorTokenBuilder`
+
+Creates a color token
+
+###### Returns
+
+`ColorTokenBuilder`
+
+A color token builder
+
+###### Remarks
+
+Accepts hex (#RGB, #RRGGBB, #RRGGBBAA), rgb/rgba, and hsl/hsla values
+
+##### dimension()
+
+> `readonly` **dimension**(): `DimensionTokenBuilder`
+
+Creates a dimension token
+Accepts values with units: px, rem, em, %, vh, vw, etc.
+
+###### Returns
+
+`DimensionTokenBuilder`
+
+##### fontFamily()
+
+> `readonly` **fontFamily**(): `FontFamilyTokenBuilder`
+
+Creates a font family token
+Accepts font family stacks (e.g., "Inter, sans-serif")
+
+###### Returns
+
+`FontFamilyTokenBuilder`
+
+##### fontWeight()
+
+> `readonly` **fontWeight**(): `FontWeightTokenBuilder`
+
+Creates a font weight token
+Accepts numeric weights (100-900) or keywords
+
+###### Returns
+
+`FontWeightTokenBuilder`
+
+##### number()
+
+> `readonly` **number**(): `NumberTokenBuilder`
+
+Creates a number token
+Accepts numeric values (integers or floats)
+
+###### Returns
+
+`NumberTokenBuilder`
+
+##### shadow()
+
+> `readonly` **shadow**(): `ShadowTokenBuilder`
+
+Creates a shadow token
+Accepts CSS box-shadow or text-shadow values
+
+###### Returns
+
+`ShadowTokenBuilder`
+
+##### string()
+
+> `readonly` **string**(): `StringTokenBuilder`
+
+Creates a string token
+Accepts arbitrary string values
+
+###### Returns
+
+`StringTokenBuilder`
+
+##### url()
+
+> `readonly` **url**(): `UrlTokenBuilder`
+
+Creates a URL token
+Accepts URL values (validated format)
+
+###### Returns
+
+`UrlTokenBuilder`
+
+#### Remarks
+
+Provides a fluent API for defining tokens in a schema.
+Inspired by Zod's builder pattern.
+
+#### Example
+
+```ts
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color().default('#3b82f6'),
+      background: t.color().describe('Page background color'),
+    },
+    spacing: {
+      sm: t.dimension().default('4px'),
+      md: t.dimension().default('8px'),
+    },
+  },
+});
+```
+
+## Functions
+
+### coerce()
+
+> **coerce**\<`T`\>(`options`): [`ValidationResult`](#validationresult)\<[`InferTheme`](#infertheme)\<`T`\>\>
+
+Defined in: [validation/index.ts:223](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/validation/index.ts#L223)
+
+Validates and coerces theme data
+
+Attempts to convert values to the correct type when possible.
+For example, "123" -> 123 for number tokens.
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Parameters
+
+##### options
+
+[`ValidateOptions`](#validateoptions)\<`T`\>
+
+Validation options containing schema and data
+
+#### Returns
+
+[`ValidationResult`](#validationresult)\<[`InferTheme`](#infertheme)\<`T`\>\>
+
+Validation result with coerced typed data or errors
+
+#### Example
+
+```ts
+const result = coerce({ schema, data: rawThemeData });
+if (result.success) {
+  console.log(result.data);
+}
+```
+
+***
+
+### createCssVarHelper()
+
+> **createCssVarHelper**\<`T`\>(`opts`): \<`P`\>(`path`) => `string`
+
+Defined in: [css/index.ts:263](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L263)
+
+Creates a typed helper for generating CSS variable references
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Parameters
+
+##### opts
+
+[`CreateCssVarHelperOptions`](#createcssvarhelperoptions)\<`T`\>
+
+Options containing schema and optional CSS variable configuration
+
+#### Returns
+
+A function that takes a path and returns the CSS var() reference
+
+> \<`P`\>(`path`): `string`
+
+##### Type Parameters
+
+###### P
+
+`P` *extends* `string`
+
+##### Parameters
+
+###### path
+
+`P`
+
+##### Returns
+
+`string`
+
+#### Example
+
+```ts
+const themeVar = createCssVarHelper({ schema });
+
+// Fully typed - only valid paths are allowed
+const primary = themeVar('colors.primary');
+// 'var(--colors-primary)'
+```
+
+***
+
+### createResolver()
+
+> **createResolver**\<`T`\>(`opts`): [`ThemeResolver`](#themeresolver)\<`T`\>
+
+Defined in: [resolver/index.ts:132](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/resolver/index.ts#L132)
+
+Creates a theme resolver with caching support
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+The type of the schema definition
+
+#### Parameters
+
+##### opts
+
+[`CreateResolverOptions`](#createresolveroptions)\<`T`\>
+
+Options containing schema, fetcher, and optional cache configuration
+
+#### Returns
+
+[`ThemeResolver`](#themeresolver)\<`T`\>
+
+A ThemeResolver instance with resolve, invalidate, clearCache, and get methods
+
+#### Remarks
+
+The resolver:
+- Fetches theme data using the provided fetcher function
+- Merges fetched data with schema defaults
+- Validates and coerces the merged data
+- Caches resolved themes with configurable TTL
+- Supports stale-while-revalidate for better performance
+
+#### Example
+
+```ts
+const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => {
+    return await db.themes.findByTheme(themeId);
+  },
+  cache: {
+    ttl: 60000, // 1 minute
+    staleWhileRevalidate: true,
+  },
+});
+
+// Resolve a complete theme
+const theme = await resolver.resolve({ themeId: 'theme-123' });
+
+// Get a specific value
+const primaryColor = await resolver.get({ themeId: 'theme-123', path: 'colors.primary' });
+
+// Invalidate cache for a theme
+resolver.invalidate({ themeId: 'theme-123' });
+```
+
+***
+
+### createSchema()
+
+> **createSchema**\<`T`\>(`opts`): [`Schema`](#schema-2)\<`T`\>
+
+Defined in: [schema/index.ts:203](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L203)
+
+Creates a validated schema from a definition object
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Parameters
+
+##### opts
+
+[`CreateSchemaOptions`](#createschemaoptions)\<`T`\>
+
+Options containing the schema definition
+
+#### Returns
+
+[`Schema`](#schema-2)\<`T`\>
+
+A validated Schema object
+
+#### Example
+
+```ts
+const schema = createSchema({
+  definition: {
+    colors: {
+      primary: t.color().default('#3b82f6'),
+      secondary: t.color(),
+    },
+    spacing: {
+      sm: t.dimension().default('4px'),
+      md: t.dimension().default('8px'),
+      lg: t.dimension().default('16px'),
+    },
+  },
+});
+```
+
+***
+
+### cssVar()
+
+> **cssVar**(`opts`): `string`
+
+Defined in: [css/index.ts:233](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L233)
+
+Generates CSS variable reference (var()) for a token path
+
+#### Parameters
+
+##### opts
+
+[`CssVarOptions`](#cssvaroptions)
+
+Options containing path and optional CSS variable configuration
+
+#### Returns
+
+`string`
+
+CSS var() function call
+
+#### Example
+
+```ts
+const ref = cssVar({ path: 'colors.primary' });
+// 'var(--colors-primary)'
+
+const withPrefix = cssVar({ path: 'colors.primary', options: { prefix: 'theme' } });
+// 'var(--theme-colors-primary)'
+```
+
+***
+
+### escapeCssValue()
+
+> **escapeCssValue**(`value`): `string`
+
+Defined in: [validation/css-escape.ts:83](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/validation/css-escape.ts#L83)
+
+Escapes a CSS value to prevent injection attacks
+
+#### Parameters
+
+##### value
+
+`string`
+
+The CSS value to escape
+
+#### Returns
+
+`string`
+
+The escaped CSS value safe for use in CSS declarations
+
+#### Remarks
+
+This function escapes characters that could be used to break out of CSS
+variable declarations or inject malicious CSS:
+- Backslashes (\\) - could be used to escape other escapes
+- Quotes (" and ') - could break out of quoted values
+- Semicolons (;) - could end declarations and start new ones
+- Braces (\{ and \}) - could end rules and start new ones
+- Newlines (\\n and \\r) - could break parsing
+
+The function is idempotent and safe to call multiple times.
+
+#### Example
+
+```typescript
+// Escaping a potentially malicious value
+escapeCssValue('red; } body { background: url(evil); } .x {');
+// Returns: 'red\\; \\} body \\{ background: url(evil)\\; \\} .x \\{'
+
+// Safe values pass through unchanged (except for the escaping of special chars)
+escapeCssValue('#3b82f6');
+// Returns: '#3b82f6'
+
+// Empty strings are handled safely
+escapeCssValue('');
+// Returns: ''
+```
+
+***
+
+### getTokenAtPath()
+
+> **getTokenAtPath**(`opts`): [`TokenDefinition`](#tokendefinition) \| `undefined`
+
+Defined in: [schema/index.ts:322](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L322)
+
+Gets a token definition at a specific path
+
+#### Parameters
+
+##### opts
+
+[`GetTokenAtPathOptions`](#gettokenatpathoptions)
+
+Options containing the schema definition and path
+
+#### Returns
+
+[`TokenDefinition`](#tokendefinition) \| `undefined`
+
+The token definition if found, otherwise undefined
+
+#### Remarks
+
+Navigates through nested groups using dot-notation path.
+Returns undefined if the path doesn't exist or points to a nested group.
+
+#### Example
+
+```ts
+const definition = {
+  colors: { primary: t.color(), secondary: t.color() },
+  spacing: { sm: t.dimension() }
+};
+getTokenAtPath({ definition, path: 'colors.primary' });
+// { type: 'color', defaultValue: ... }
+
+getTokenAtPath({ definition, path: 'colors' });
+// undefined (not a token, it's a group)
+```
+
+***
+
+### getTokenPaths()
+
+> **getTokenPaths**(`opts`): `string`[]
+
+Defined in: [schema/index.ts:272](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L272)
+
+Gets all token paths from a schema definition
+
+#### Parameters
+
+##### opts
+
+[`GetTokenPathsOptions`](#gettokenpathsoptions)
+
+Options containing the schema definition and optional prefix
+
+#### Returns
+
+`string`[]
+
+Array of dot-notation paths to all tokens in the schema
+
+#### Remarks
+
+Recursively traverses the schema definition and collects the paths to all token definitions.
+Nested groups are traversed but not included in the result.
+
+#### Example
+
+```ts
+const definition = {
+  colors: { primary: t.color(), secondary: t.color() },
+  spacing: { sm: t.dimension() }
+};
+getTokenPaths({ definition });
+// ['colors.primary', 'colors.secondary', 'spacing.sm']
+```
+
+***
+
+### isSchema()
+
+> **isSchema**\<`T`\>(`value`): `value is Schema<T>`
+
+Defined in: [schema/index.ts:108](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L108)
+
+Type guard to check if a value is a Schema
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+The schema definition type
+
+#### Parameters
+
+##### value
+
+`unknown`
+
+The value to check
+
+#### Returns
+
+`value is Schema<T>`
+
+True if the value is a branded Schema object created by createSchema
+
+#### Remarks
+
+Schemas are branded objects created by the createSchema function.
+This type guard checks for the presence of the internal brand symbol.
+
+#### Example
+
+```ts
+const schema = createSchema({ definition: { colors: { primary: t.color() } } });
+isSchema(schema); // true
+isSchema({ definition: {} }); // false
+```
+
+***
+
+### isSchemaDefinition()
+
+> **isSchemaDefinition**(`value`): `value is SchemaDefinition`
+
+Defined in: [schema/index.ts:76](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L76)
+
+Type guard to check if a value is a schema definition (nested group)
+
+#### Parameters
+
+##### value
+
+`unknown`
+
+The value to check
+
+#### Returns
+
+`value is SchemaDefinition`
+
+True if the value is a nested group (object that's not a token definition)
+
+#### Remarks
+
+A schema definition is an object that contains other tokens or nested groups.
+It's distinguished from a token definition by not having a 'type' property.
+
+#### Example
+
+```ts
+isSchemaDefinition({ primary: { type: 'color' } }); // true (nested group)
+isSchemaDefinition({ type: 'color' }); // false (token definition)
+```
+
+***
+
+### isTokenDefinition()
+
+> **isTokenDefinition**(`value`): `value is TokenDefinition`
+
+Defined in: [schema/index.ts:51](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/schema/index.ts#L51)
+
+Type guard to check if a value is a token definition
+
+#### Parameters
+
+##### value
+
+`unknown`
+
+The value to check
+
+#### Returns
+
+`value is TokenDefinition`
+
+True if the value is a token definition with a valid type property
+
+#### Remarks
+
+A token definition is an object with a 'type' property that matches one of the valid token types.
+
+#### Example
+
+```ts
+isTokenDefinition({ type: 'color' }); // true
+isTokenDefinition({ type: 'invalid' }); // false
+isTokenDefinition('string'); // false
+```
+
+***
+
+### needsCssEscaping()
+
+> **needsCssEscaping**(`value`): `boolean`
+
+Defined in: [validation/css-escape.ts:109](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/validation/css-escape.ts#L109)
+
+Checks if a CSS value contains potentially dangerous characters
+
+#### Parameters
+
+##### value
+
+`string`
+
+The CSS value to check
+
+#### Returns
+
+`boolean`
+
+True if the value contains characters that would be escaped
+
+#### Remarks
+
+This is a fast check to determine if escaping is needed.
+Useful for optimization when processing many values.
+
+#### Example
+
+```typescript
+needsCssEscaping('red');           // false
+needsCssEscaping('red; evil: x');  // true
+```
+
+***
+
+### toCssString()
+
+> **toCssString**\<`T`\>(`opts`): `string`
+
+Defined in: [css/index.ts:206](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L206)
+
+Converts a resolved theme to a CSS string for injection
+
+Generates a complete CSS rule with custom properties.
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Parameters
+
+##### opts
+
+[`ToCssStringOptions`](#tocssstringoptions)\<`T`\>
+
+Options containing schema, theme, selector, and optional CSS variable configuration
+
+#### Returns
+
+`string`
+
+CSS string ready for injection
+
+#### Example
+
+```ts
+const css = toCssString({ schema, theme });
+// :root {
+//   --colors-primary: #3b82f6;
+//   --spacing-md: 16px;
+// }
+
+// With custom selector
+const scopedCss = toCssString({ schema, theme, selector: '.theme-container' });
+// .theme-container {
+//   --colors-primary: #3b82f6;
+//   --spacing-md: 16px;
+// }
+```
+
+***
+
+### toCssStringAll()
+
+> **toCssStringAll**\<`T`, `K`\>(`opts`): `string`
+
+Defined in: [css/index.ts:317](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L317)
+
+Generates CSS for multiple themes with selectors
+
+Creates CSS rules with `[data-theme="<key>"]` selectors for each theme.
+The default theme is also applied to `:root` for initial load.
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+##### K
+
+`K` *extends* `string`
+
+#### Parameters
+
+##### opts
+
+[`ToCssStringAllOptions`](#tocssstringalloptions)\<`T`, `K`\>
+
+Options containing schema, themes, defaultTheme, and optional CSS variable configuration
+
+#### Returns
+
+`string`
+
+CSS string with all themes
+
+#### Example
+
+```ts
+const css = toCssStringAll({
+  schema,
+  themes: { light: lightTheme, dark: darkTheme },
+  defaultTheme: 'light',
+});
+// :root, [data-theme="light"] {
+//   --colors-primary: #14b8a6;
+//   --colors-background: #ffffff;
+// }
+// [data-theme="dark"] {
+//   --colors-primary: #2dd4bf;
+//   --colors-background: #0f172a;
+// }
+```
+
+***
+
+### toCssVariables()
+
+> **toCssVariables**\<`T`\>(`opts`): `Record`\<`string`, `string`\>
+
+Defined in: [css/index.ts:169](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/css/index.ts#L169)
+
+Converts a resolved theme to CSS custom properties (variables)
+
+Returns an object mapping variable names to values.
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Parameters
+
+##### opts
+
+[`ToCssVariablesOptions`](#tocssvariablesoptions)\<`T`\>
+
+Options containing schema, theme, and optional CSS variable configuration
+
+#### Returns
+
+`Record`\<`string`, `string`\>
+
+Object mapping CSS variable names to values
+
+#### Example
+
+```ts
+const variables = toCssVariables({ schema, theme });
+// { '--colors-primary': '#3b82f6', '--spacing-md': '16px', ... }
+
+// With prefix
+const prefixed = toCssVariables({ schema, theme, options: { prefix: 'theme' } });
+// { '--theme-colors-primary': '#3b82f6', '--theme-spacing-md': '16px', ... }
+```
+
+***
+
+### validate()
+
+> **validate**\<`T`\>(`options`): [`ValidationResult`](#validationresult)\<[`InferTheme`](#infertheme)\<`T`\>\>
+
+Defined in: [validation/index.ts:177](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/validation/index.ts#L177)
+
+Validates theme data against a schema in strict mode
+
+All required values must be present and match their token types exactly.
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Parameters
+
+##### options
+
+[`ValidateOptions`](#validateoptions)\<`T`\>
+
+Validation options containing schema and data
+
+#### Returns
+
+[`ValidationResult`](#validationresult)\<[`InferTheme`](#infertheme)\<`T`\>\>
+
+Validation result with typed data or errors
+
+#### Example
+
+```ts
+const result = validate({ schema, data: themeData });
+if (result.success) {
+  console.log(result.data);
+}
+```
+
+***
+
+### validatePartial()
+
+> **validatePartial**\<`T`\>(`options`): [`ValidationResult`](#validationresult)\<`Partial`\<[`InferTheme`](#infertheme)\<`T`\>\>\>
+
+Defined in: [validation/index.ts:200](https://github.com/Livery-Dev/livery/blob/main/packages/core/src/validation/index.ts#L200)
+
+Validates theme data in partial mode
+
+Missing values are allowed and won't cause errors.
+Useful for validating partial updates.
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* [`SchemaDefinition`](#schemadefinition-1)
+
+#### Parameters
+
+##### options
+
+[`ValidateOptions`](#validateoptions)\<`T`\>
+
+Validation options containing schema and data
+
+#### Returns
+
+[`ValidationResult`](#validationresult)\<`Partial`\<[`InferTheme`](#infertheme)\<`T`\>\>\>
+
+Validation result with typed partial data or errors
+
+#### Example
+
+```ts
+const result = validatePartial({ schema, data: partialTheme });
+if (result.success) {
+  console.log(result.data);
+}
+```

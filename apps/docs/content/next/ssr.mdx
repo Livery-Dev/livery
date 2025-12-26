@@ -1,0 +1,369 @@
+# Server-Side Rendering
+
+Complete guide to SSR and hydration with Livery in Next.js.
+
+## The Problem
+
+Without proper SSR handling, you'll encounter:
+
+1. **Flash of Unstyled Content (FOUC)** — Page renders without theme, then flickers
+2. **Hydration Mismatches** — Server HTML differs from client HTML
+3. **Layout Shifts** — Content jumps as theme values load
+
+## The Solution
+
+Pre-resolve themes on the server and inject critical CSS.
+
+```tsx filename="app/layout.tsx"
+import { headers } from 'next/headers';
+import { getLiveryData, getThemeFromHeaders } from '@livery/next';
+import { LiveryScript } from '@livery/react/server';
+import { schema, resolver } from '@/lib/livery';
+import { Providers } from '@/components/Providers';
+
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // Get theme from middleware
+  const headersList = await headers();
+  const themeId = getThemeFromHeaders({ headers: headersList }) ?? 'default';
+
+  // Resolve theme on server
+  const { theme, css } = await getLiveryData({ themeId, 
+    schema,
+    resolver,
+  });
+
+  return (
+    <html lang="en">
+      <head>
+        {/* Critical CSS prevents FOUC */}
+        <LiveryScript css={css} />
+      </head>
+      <body>
+        {/* initialTheme prevents hydration mismatch */}
+        <Providers themeId={themeId} initialTheme={theme}>
+          {children}
+        </Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+## Critical CSS
+
+### Why Critical CSS?
+
+CSS variables must be available before the first paint. Use `LiveryScript` in `<head>`:
+
+```tsx
+import { LiveryScript } from '@livery/react/server';
+
+<head>
+  <LiveryScript css={css} />
+</head>
+```
+
+The generated CSS looks like:
+
+```css
+:root {
+  --colors-primary: #0d9488;
+  --colors-secondary: #14b8a6;
+  --colors-background: #ffffff;
+  /* ... */
+}
+```
+
+### Scoped CSS
+
+Scope CSS to specific elements instead of `:root`:
+
+```tsx
+const { css } = await getLiveryData({ themeId,
+  schema,
+  resolver,
+  cssOptions: {
+    selector: '[data-theme]',
+  },
+});
+
+// Usage in JSX
+<div data-theme={themeId}>
+  {children}
+</div>
+```
+
+## Hydration
+
+### Preventing Mismatches
+
+Pass the server-resolved theme to `DynamicThemeProvider`:
+
+```tsx filename="components/Providers.tsx"
+'use client';
+
+import { DynamicThemeProvider, resolver } from '@/lib/livery';
+
+export function Providers({ children, themeId, initialTheme }) {
+  return (
+    <DynamicThemeProvider
+      themeId={themeId}
+      resolver={resolver}
+      initialTheme={initialTheme} // Same theme used on server
+    >
+      {children}
+    </DynamicThemeProvider>
+  );
+}
+```
+
+### suppressHydrationWarning
+
+For values that legitimately differ (like dates or random IDs):
+
+```tsx
+<html lang="en" suppressHydrationWarning>
+```
+
+## Loading States
+
+### Server Components
+
+Server components render immediately with theme data:
+
+```tsx
+// This is a Server Component - no loading state needed
+export default async function ThemeInfo() {
+  const { theme } = await getLiveryData('default', { schema, resolver });
+
+  return (
+    <div style={{ color: theme.colors.primary }}>
+      Theme loaded on server
+    </div>
+  );
+}
+```
+
+### Client Components
+
+Client components should handle the initial loading state:
+
+```tsx
+'use client';
+
+import { useTheme } from '@/lib/livery';
+
+export function ThemedContent() {
+  const { theme, isLoading, isReady } = useTheme();
+
+  // With initialTheme, isReady is immediately true
+  if (!isReady) {
+    return <Skeleton />;
+  }
+
+  return (
+    <div style={{ background: theme.colors.background }}>
+      Content
+    </div>
+  );
+}
+```
+
+## Static Generation
+
+### Generating Static Pages
+
+Pre-generate themed pages at build time:
+
+```tsx filename="app/[themeId]/page.tsx"
+import { getLiveryData } from '@livery/next';
+import { schema, resolver } from '@/lib/livery';
+
+// Generate pages for each theme
+export async function generateStaticParams() {
+  return [
+    { themeId: 'default' },
+    { themeId: 'dark' },
+    { themeId: 'ocean' },
+  ];
+}
+
+export default async function ThemePage({
+  params,
+}: {
+  params: Promise<{ themeId: string }>;
+}) {
+  const { themeId } = await params;
+  const { theme, css } = await getLiveryData({ themeId, schema, resolver });
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: `:root { ${css} }` }} />
+      <PageContent theme={theme} />
+    </>
+  );
+}
+```
+
+### Incremental Static Regeneration
+
+Revalidate theme data periodically:
+
+```tsx
+export const revalidate = 60; // Revalidate every 60 seconds
+```
+
+## Streaming
+
+### With Suspense
+
+Stream themed content progressively:
+
+```tsx filename="app/page.tsx"
+import { Suspense } from 'react';
+
+export default function Page() {
+  return (
+    <div>
+      <Header /> {/* Renders immediately */}
+
+      <Suspense fallback={<DashboardSkeleton />}>
+        <Dashboard /> {/* Streams when ready */}
+      </Suspense>
+    </div>
+  );
+}
+```
+
+### Loading UI
+
+Use `loading.tsx` for route-level loading states:
+
+```tsx filename="app/dashboard/loading.tsx"
+export default function Loading() {
+  return <DashboardSkeleton />;
+}
+```
+
+## Multi-Tenant Architecture
+
+### Layout-Level Theming
+
+Apply themes at the layout level for entire sections:
+
+```
+app/
+├── (marketing)/        # Marketing pages - default theme
+│   └── layout.tsx
+├── (app)/              # App pages - user/customer theme
+│   ├── layout.tsx      # Resolves theme
+│   └── [themeId]/
+│       └── page.tsx
+└── layout.tsx          # Root layout
+```
+
+```tsx filename="app/(app)/layout.tsx"
+import { getLiveryData } from '@livery/next';
+import { LiveryScript } from '@livery/react/server';
+
+export default async function AppLayout({ children }) {
+  const { theme, css } = await getLiveryData({ themeId: 'theme-from-context', 
+    schema,
+    resolver,
+  });
+
+  return (
+    <>
+      <LiveryScript css={css} />
+      <Providers initialTheme={theme}>{children}</Providers>
+    </>
+  );
+}
+```
+
+### Theme Switching
+
+Handle theme switches without full page reloads:
+
+```tsx
+'use client';
+
+import { useRouter } from 'next/navigation';
+
+export function ThemeSwitcher({ themes }) {
+  const router = useRouter();
+
+  const switchTheme = (themeId: string) => {
+    // Option 1: Navigate to theme-specific route
+    router.push(`/${themeId}/dashboard`);
+
+    // Option 2: Update cookie and refresh
+    document.cookie = `theme=${themeId}; path=/`;
+    router.refresh();
+  };
+
+  return (
+    <select onChange={(e) => switchTheme(e.target.value)}>
+      {themes.map((theme) => (
+        <option key={theme.id} value={theme.id}>
+          {theme.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+```
+
+## Performance Tips
+
+### 1. Cache Theme Resolution
+
+Use React's `cache` for request deduplication:
+
+```tsx
+import { cache } from 'react';
+
+const getTheme = cache(async (themeId: string) => {
+  return getLiveryData({ themeId,  schema, resolver });
+});
+```
+
+### 2. Minimize CSS Size
+
+Only include necessary variables:
+
+```tsx
+const { css } = await getLiveryData({ themeId, 
+  schema,
+  resolver,
+  cssOptions: {
+    include: ['colors', 'typography'], // Only these categories
+  },
+});
+```
+
+### 3. Use CSS Variables in Stylesheets
+
+Prefer CSS variables over inline styles:
+
+```css filename="styles/button.css"
+.button {
+  background-color: var(--colors-primary);
+  color: var(--colors-textInverse);
+  font-family: var(--typography-fontFamily-sans);
+}
+```
+
+### 4. Avoid Blocking on Theme
+
+Non-critical themed content can load progressively:
+
+```tsx
+<Suspense fallback={<Skeleton />}>
+  <NonCriticalContent />
+</Suspense>
+```

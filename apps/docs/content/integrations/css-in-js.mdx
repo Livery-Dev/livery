@@ -1,0 +1,268 @@
+# CSS-in-JS
+
+Integrate Livery with CSS-in-JS libraries like Styled Components, Emotion, and more.
+
+## CSS Variables Approach
+
+The simplest approach works with any CSS-in-JS library:
+
+```tsx
+import styled from 'styled-components';
+
+const Button = styled.button`
+  background-color: var(--colors-primary);
+  color: var(--colors-textInverse);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--borderRadius-md);
+  border: none;
+  font-family: var(--typography-fontFamily-sans);
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+```
+
+## React Hooks Approach
+
+Use Livery hooks for dynamic values:
+
+```tsx
+import { useThemeValue } from '@/lib/livery';
+import styled from 'styled-components';
+
+function ThemedButton({ children }) {
+  const primary = useThemeValue('colors.primary');
+  const textInverse = useThemeValue('colors.textInverse');
+
+  return (
+    <StyledButton $primary={primary} $textColor={textInverse}>
+      {children}
+    </StyledButton>
+  );
+}
+
+const StyledButton = styled.button<{ $primary: string; $textColor: string }>`
+  background-color: ${(props) => props.$primary};
+  color: ${(props) => props.$textColor};
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: none;
+`;
+```
+
+## Styled Components
+
+### With CSS Variables
+
+```tsx
+import styled from 'styled-components';
+
+export const Card = styled.div`
+  background: var(--colors-surface);
+  border: 1px solid var(--colors-border);
+  border-radius: var(--borderRadius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadows-md);
+`;
+
+export const Heading = styled.h2`
+  color: var(--colors-text);
+  font-family: var(--typography-fontFamily-sans);
+  font-size: var(--typography-fontSize-xl);
+  font-weight: var(--typography-fontWeight-semibold);
+  margin: 0 0 var(--spacing-md);
+`;
+
+export const Text = styled.p`
+  color: var(--colors-textMuted);
+  font-family: var(--typography-fontFamily-sans);
+  font-size: var(--typography-fontSize-base);
+  line-height: 1.5;
+  margin: 0;
+`;
+```
+
+### Theme Provider Integration
+
+Create a Styled Components theme from Livery:
+
+```tsx
+import { ThemeProvider } from 'styled-components';
+import { useTheme } from '@/lib/livery';
+
+function StyledThemeProvider({ children }) {
+  const { theme, isReady } = useTheme();
+
+  if (!isReady || !theme) {
+    return <LoadingState />;
+  }
+
+  return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
+}
+
+// Usage in styled component
+const Button = styled.button`
+  background-color: ${(props) => props.theme.colors.primary};
+  color: ${(props) => props.theme.colors.textInverse};
+`;
+```
+
+## Emotion
+
+### With CSS Variables
+
+```tsx
+import { css } from '@emotion/react';
+import styled from '@emotion/styled';
+
+export const buttonStyles = css`
+  background-color: var(--colors-primary);
+  color: var(--colors-textInverse);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--borderRadius-md);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+export const Button = styled.button`
+  ${buttonStyles}
+`;
+```
+
+### With Theme Context
+
+```tsx
+import { ThemeProvider } from '@emotion/react';
+import { useTheme } from '@/lib/livery';
+
+function EmotionThemeProvider({ children }) {
+  const { theme } = useTheme();
+
+  return <ThemeProvider theme={theme ?? {}}>{children}</ThemeProvider>;
+}
+```
+
+## Stitches
+
+```tsx
+import { createStitches } from '@stitches/react';
+
+export const { styled, css, theme } = createStitches({
+  theme: {
+    colors: {
+      primary: 'var(--colors-primary)',
+      secondary: 'var(--colors-secondary)',
+      background: 'var(--colors-background)',
+      text: 'var(--colors-text)',
+    },
+    space: {
+      sm: 'var(--spacing-sm)',
+      md: 'var(--spacing-md)',
+      lg: 'var(--spacing-lg)',
+    },
+    radii: {
+      sm: 'var(--borderRadius-sm)',
+      md: 'var(--borderRadius-md)',
+      lg: 'var(--borderRadius-lg)',
+    },
+  },
+});
+
+const Button = styled('button', {
+  backgroundColor: '$primary',
+  color: 'white',
+  padding: '$sm $md',
+  borderRadius: '$md',
+});
+```
+
+## Vanilla Extract
+
+```tsx filename="button.css.ts"
+import { style } from '@vanilla-extract/css';
+
+export const button = style({
+  backgroundColor: 'var(--colors-primary)',
+  color: 'var(--colors-textInverse)',
+  padding: 'var(--spacing-sm) var(--spacing-md)',
+  borderRadius: 'var(--borderRadius-md)',
+  border: 'none',
+  cursor: 'pointer',
+  ':hover': {
+    opacity: 0.9,
+  },
+});
+```
+
+## Panda CSS
+
+```tsx filename="panda.config.ts"
+import { defineConfig } from '@pandacss/dev';
+
+export default defineConfig({
+  theme: {
+    extend: {
+      tokens: {
+        colors: {
+          primary: { value: 'var(--colors-primary)' },
+          secondary: { value: 'var(--colors-secondary)' },
+          background: { value: 'var(--colors-background)' },
+          text: { value: 'var(--colors-text)' },
+        },
+      },
+    },
+  },
+});
+```
+
+## Best Practices
+
+### 1. Prefer CSS Variables
+
+CSS variables update automatically when the theme changes:
+
+```tsx
+// Good - updates with theme
+const Button = styled.button`
+  background: var(--colors-primary);
+`;
+
+// Requires re-render to update
+const Button = styled.button<{ $bg: string }>`
+  background: ${(p) => p.$bg};
+`;
+```
+
+### 2. Create Utility Functions
+
+```typescript
+// lib/theme-utils.ts
+export const cssVar = (path: string) => `var(--${path.replace(/\./g, '-')})`;
+
+// Usage
+const Button = styled.button`
+  background: ${cssVar('colors.primary')};
+  padding: ${cssVar('spacing.md')};
+`;
+```
+
+### 3. Handle Loading States
+
+```tsx
+function ThemedComponent() {
+  const { isReady } = useTheme();
+
+  if (!isReady) {
+    return <Skeleton />;
+  }
+
+  return <StyledContent>...</StyledContent>;
+}
+```

@@ -1,0 +1,697 @@
+## Interfaces
+
+### CachedResolverOptions
+
+Defined in: [types/index.ts:183](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L183)
+
+Options for creating a cached resolver
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* `SchemaDefinition`
+
+#### Properties
+
+##### resolver
+
+> `readonly` **resolver**: `ThemeResolver`\<`T`\>
+
+Defined in: [types/index.ts:185](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L185)
+
+The underlying resolver
+
+##### revalidate?
+
+> `readonly` `optional` **revalidate**: `number`
+
+Defined in: [types/index.ts:187](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L187)
+
+Cache duration in seconds
+
+##### tags?
+
+> `readonly` `optional` **tags**: readonly `string`[]
+
+Defined in: [types/index.ts:189](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L189)
+
+Tags for cache invalidation
+
+***
+
+### CacheHeaderOptions
+
+Defined in: [types/index.ts:199](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L199)
+
+Options for cache headers
+
+#### Properties
+
+##### maxAge?
+
+> `readonly` `optional` **maxAge**: `number`
+
+Defined in: [types/index.ts:204](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L204)
+
+Cache-Control max-age in seconds.
+Defaults to 60.
+
+##### scope?
+
+> `readonly` `optional` **scope**: `"public"` \| `"private"`
+
+Defined in: [types/index.ts:216](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L216)
+
+Whether to set public or private cache.
+Defaults to 'public'.
+
+##### staleWhileRevalidate?
+
+> `readonly` `optional` **staleWhileRevalidate**: `number`
+
+Defined in: [types/index.ts:210](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L210)
+
+Stale-while-revalidate duration in seconds.
+Defaults to 600.
+
+##### vary?
+
+> `readonly` `optional` **vary**: readonly `string`[]
+
+Defined in: [types/index.ts:221](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L221)
+
+Additional Vary headers.
+
+***
+
+### CreateLiveryMiddlewareOptions
+
+Defined in: [types/index.ts:79](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L79)
+
+Options for createLiveryMiddleware
+
+#### Properties
+
+##### fallback?
+
+> `readonly` `optional` **fallback**: `string`
+
+Defined in: [types/index.ts:124](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L124)
+
+Fallback path to redirect to when no theme is found.
+If not provided, the request continues without a theme.
+
+##### getTheme?
+
+> `readonly` `optional` **getTheme**: [`ThemeExtractor`](#themeextractor)
+
+Defined in: [types/index.ts:98](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L98)
+
+Custom function to extract theme from request.
+Required when strategy is 'custom', optional otherwise.
+
+##### header?
+
+> `readonly` `optional` **header**: [`HeaderOptions`](#headeroptions)
+
+Defined in: [types/index.ts:113](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L113)
+
+Options for header strategy
+
+##### path?
+
+> `readonly` `optional` **path**: [`PathOptions`](#pathoptions)
+
+Defined in: [types/index.ts:108](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L108)
+
+Options for path strategy
+
+##### query?
+
+> `readonly` `optional` **query**: [`QueryOptions`](#queryoptions)
+
+Defined in: [types/index.ts:118](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L118)
+
+Options for query strategy
+
+##### skipPaths?
+
+> `readonly` `optional` **skipPaths**: readonly `string`[]
+
+Defined in: [types/index.ts:142](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L142)
+
+Paths to skip middleware processing for.
+Defaults to common static paths.
+
+##### strategy?
+
+> `readonly` `optional` **strategy**: [`ThemeStrategy`](#themestrategy) \| [`ThemeExtractor`](#themeextractor)
+
+Defined in: [types/index.ts:92](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L92)
+
+Theme extraction strategy or custom function.
+
+Built-in strategies:
+- 'subdomain': Extract from subdomain (acme.yourapp.com → 'acme')
+- 'path': Extract from path (/t/acme/dashboard → 'acme')
+- 'header': Extract from header (X-Theme-ID: acme)
+- 'query': Extract from query param (?theme=acme)
+- 'custom': Use getTheme function
+
+Or provide a custom extraction function.
+
+##### subdomain?
+
+> `readonly` `optional` **subdomain**: [`SubdomainOptions`](#subdomainoptions)
+
+Defined in: [types/index.ts:103](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L103)
+
+Options for subdomain strategy
+
+##### themeHeader?
+
+> `readonly` `optional` **themeHeader**: `string`
+
+Defined in: [types/index.ts:136](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L136)
+
+Header name to set the theme ID on the request.
+Defaults to 'x-livery-theme'.
+
+##### validate()?
+
+> `readonly` `optional` **validate**: (`params`) => `boolean` \| `Promise`\<`boolean`\>
+
+Defined in: [types/index.ts:130](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L130)
+
+Optional validation function to check if theme exists.
+Return true if valid, false to trigger fallback.
+
+###### Parameters
+
+###### params
+
+###### themeId
+
+`string`
+
+###### Returns
+
+`boolean` \| `Promise`\<`boolean`\>
+
+***
+
+### GetLiveryDataOptions
+
+Defined in: [types/index.ts:159](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L159)
+
+Options for getLiveryData (server-side theme resolution)
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* `SchemaDefinition`
+
+#### Properties
+
+##### cssOptions?
+
+> `readonly` `optional` **cssOptions**: `CssVariableOptions`
+
+Defined in: [types/index.ts:165](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L165)
+
+CSS variable options (prefix, separator, etc.)
+
+##### resolver
+
+> `readonly` **resolver**: `ThemeResolver`\<`T`\>
+
+Defined in: [types/index.ts:163](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L163)
+
+Theme resolver from @livery/core
+
+##### schema
+
+> `readonly` **schema**: `Schema`\<`T`\>
+
+Defined in: [types/index.ts:161](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L161)
+
+The schema defining the theme structure
+
+***
+
+### HeaderOptions
+
+Defined in: [types/index.ts:63](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L63)
+
+Options for header-based theme extraction
+
+#### Properties
+
+##### name
+
+> `readonly` **name**: `string`
+
+Defined in: [types/index.ts:65](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L65)
+
+Header name to extract theme from
+
+***
+
+### LiveryData
+
+Defined in: [types/index.ts:171](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L171)
+
+Return type of getLiveryData
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* `SchemaDefinition`
+
+#### Properties
+
+##### css
+
+> `readonly` **css**: `string`
+
+Defined in: [types/index.ts:175](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L175)
+
+CSS string for critical styles
+
+##### theme
+
+> `readonly` **theme**: `InferTheme`\<`T`\>
+
+Defined in: [types/index.ts:173](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L173)
+
+Pre-resolved theme
+
+##### themeId
+
+> `readonly` **themeId**: `string`
+
+Defined in: [types/index.ts:177](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L177)
+
+Theme ID
+
+***
+
+### PathOptions
+
+Defined in: [types/index.ts:53](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L53)
+
+Options for path-based theme extraction
+
+#### Properties
+
+##### prefix?
+
+> `readonly` `optional` **prefix**: `string`
+
+Defined in: [types/index.ts:55](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L55)
+
+Path prefix for theme (e.g., '/t/' means /t/acme/dashboard)
+
+##### rewrite?
+
+> `readonly` `optional` **rewrite**: `boolean`
+
+Defined in: [types/index.ts:57](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L57)
+
+Whether to rewrite the path to remove the theme prefix
+
+***
+
+### QueryOptions
+
+Defined in: [types/index.ts:71](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L71)
+
+Options for query-based theme extraction
+
+#### Properties
+
+##### name
+
+> `readonly` **name**: `string`
+
+Defined in: [types/index.ts:73](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L73)
+
+Query parameter name to extract theme from
+
+***
+
+### SubdomainOptions
+
+Defined in: [types/index.ts:43](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L43)
+
+Options for subdomain-based theme extraction
+
+#### Properties
+
+##### baseDomain?
+
+> `readonly` `optional` **baseDomain**: `string`
+
+Defined in: [types/index.ts:45](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L45)
+
+Base domain to extract subdomain from (e.g., 'yourapp.com')
+
+##### ignore?
+
+> `readonly` `optional` **ignore**: readonly `string`[]
+
+Defined in: [types/index.ts:47](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L47)
+
+Subdomains to ignore (e.g., ['www', 'app'])
+
+***
+
+### ThemeExtractionResult
+
+Defined in: [types/index.ts:26](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L26)
+
+Result from theme extraction
+
+#### Properties
+
+##### rewritePath?
+
+> `readonly` `optional` **rewritePath**: `string`
+
+Defined in: [types/index.ts:30](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L30)
+
+Optional path rewrite (for path-based themes)
+
+##### themeId
+
+> `readonly` **themeId**: `string` \| `null`
+
+Defined in: [types/index.ts:28](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L28)
+
+The extracted theme ID, or null if not found
+
+## Type Aliases
+
+### LiveryMiddleware()
+
+> **LiveryMiddleware** = (`request`) => `Promise`\<`NextResponse` \| `undefined`\> \| `NextResponse` \| `undefined`
+
+Defined in: [types/index.ts:148](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L148)
+
+Livery middleware function type
+
+#### Parameters
+
+##### request
+
+`NextRequest`
+
+#### Returns
+
+`Promise`\<`NextResponse` \| `undefined`\> \| `NextResponse` \| `undefined`
+
+***
+
+### ThemeExtractor()
+
+> **ThemeExtractor** = (`params`) => [`ThemeExtractionResult`](#themeextractionresult) \| `Promise`\<[`ThemeExtractionResult`](#themeextractionresult)\>
+
+Defined in: [types/index.ts:36](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L36)
+
+Custom theme extraction function
+
+#### Parameters
+
+##### params
+
+###### request
+
+`NextRequest`
+
+#### Returns
+
+[`ThemeExtractionResult`](#themeextractionresult) \| `Promise`\<[`ThemeExtractionResult`](#themeextractionresult)\>
+
+***
+
+### ThemeStrategy
+
+> **ThemeStrategy** = `"subdomain"` \| `"path"` \| `"header"` \| `"query"` \| `"custom"`
+
+Defined in: [types/index.ts:21](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/types/index.ts#L21)
+
+Strategy for extracting theme ID from the request
+
+## Functions
+
+### createLiveryMiddleware()
+
+> **createLiveryMiddleware**(`options`): [`LiveryMiddleware`](#liverymiddleware)
+
+Defined in: [middleware/create-middleware.ts:80](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/middleware/create-middleware.ts#L80)
+
+Creates a Next.js middleware function for theme detection.
+
+The middleware extracts the theme ID from the request and sets it
+on a header for downstream use. It supports multiple extraction strategies:
+- subdomain: Extract from subdomain (acme.yourapp.com)
+- path: Extract from URL path (/t/acme/dashboard)
+- header: Extract from request header (X-Theme-ID)
+- query: Extract from query parameter (?theme=acme)
+- custom: Use a custom extraction function
+
+#### Parameters
+
+##### options
+
+[`CreateLiveryMiddlewareOptions`](#createliverymiddlewareoptions)
+
+Configuration options
+
+#### Returns
+
+[`LiveryMiddleware`](#liverymiddleware)
+
+Next.js middleware function
+
+#### Examples
+
+```typescript
+// middleware.ts
+import { createLiveryMiddleware } from '@livery/next/middleware';
+
+export const middleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+  subdomain: {
+    baseDomain: 'yourapp.com',
+    ignore: ['www', 'app'],
+  },
+  fallback: '/select-workspace',
+});
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+};
+```
+
+```typescript
+// Path-based theme extraction
+export const middleware = createLiveryMiddleware({
+  strategy: 'path',
+  path: {
+    prefix: '/t/',
+    rewrite: true,
+  },
+});
+```
+
+```typescript
+// Custom extraction with validation
+export const middleware = createLiveryMiddleware({
+  strategy: 'custom',
+  getTheme: ({ request }) => {
+    const subdomain = request.headers.get('host')?.split('.')[0];
+    return { themeId: subdomain ?? null };
+  },
+  validate: async ({ themeId }) => {
+    return await db.themes.exists(themeId);
+  },
+  fallback: '/404',
+});
+```
+
+***
+
+### getCacheHeaders()
+
+> **getCacheHeaders**(`options`): `Headers`
+
+Defined in: [app-router/index.ts:115](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/app-router/index.ts#L115)
+
+Generate cache headers for theme responses.
+
+Use this in Route Handlers to set appropriate caching headers
+for theme data responses.
+
+#### Parameters
+
+##### options
+
+[`CacheHeaderOptions`](#cacheheaderoptions) = `\{\}`
+
+Cache header options
+
+#### Returns
+
+`Headers`
+
+Headers object
+
+#### Example
+
+```typescript
+// app/api/theme/[themeId]/route.ts
+import { getCacheHeaders } from '@livery/next';
+import { resolver } from '@/lib/livery';
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ themeId: string }> }
+) {
+  const { themeId } = await params;
+  const theme = await resolver.resolve({ themeId });
+
+  return Response.json(theme, {
+    headers: getCacheHeaders({ maxAge: 300 }),
+  });
+}
+```
+
+***
+
+### getLiveryData()
+
+> **getLiveryData**\<`T`\>(`options`): `Promise`\<[`LiveryData`](#liverydata)\<`T`\>\>
+
+Defined in: [app-router/index.ts:67](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/app-router/index.ts#L67)
+
+Resolves theme data on the server for App Router.
+
+Use this in Server Components or Route Handlers to pre-resolve
+the theme and generate critical CSS.
+
+#### Type Parameters
+
+##### T
+
+`T` *extends* `SchemaDefinition`
+
+#### Parameters
+
+##### options
+
+[`GetLiveryDataOptions`](#getliverydataoptions)\<`T`\> & `object`
+
+Configuration options including themeId
+
+#### Returns
+
+`Promise`\<[`LiveryData`](#liverydata)\<`T`\>\>
+
+Promise resolving to LiveryData containing theme, css, and themeId
+
+#### Example
+
+```tsx
+// app/[themeId]/layout.tsx
+import { getLiveryData } from '@livery/next';
+import { schema, resolver } from '@/lib/livery';
+
+export default async function Layout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ themeId: string }>;
+}) {
+  const { themeId } = await params;
+  const { theme, css } = await getLiveryData({
+    themeId,
+    schema,
+    resolver,
+  });
+
+  return (
+    <html>
+      <head>
+        <style id="livery-critical" dangerouslySetInnerHTML={{ __html: css }} />
+      </head>
+      <body>
+        <LiveryProvider
+          themeId={themeId}
+          resolver={resolver}
+          initialTheme={theme}
+        >
+          {children}
+        </LiveryProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+***
+
+### getThemeFromHeaders()
+
+> **getThemeFromHeaders**(`options`): `string` \| `null`
+
+Defined in: [app-router/index.ts:163](https://github.com/Livery-Dev/livery/blob/main/packages/next/src/app-router/index.ts#L163)
+
+Get the theme ID from request headers.
+
+Use this in Server Components or Route Handlers to retrieve
+the theme ID set by the middleware.
+
+#### Parameters
+
+##### options
+
+Options containing headers and optional headerName
+
+###### headerName?
+
+`string`
+
+###### headers
+
+`Headers`
+
+#### Returns
+
+`string` \| `null`
+
+The theme ID or null
+
+#### Example
+
+```typescript
+// app/dashboard/page.tsx
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { getThemeFromHeaders } from '@livery/next';
+
+export default async function DashboardPage() {
+  const headersList = await headers();
+  const themeId = getThemeFromHeaders({ headers: headersList });
+
+  if (!themeId) {
+    redirect('/select-workspace');
+  }
+
+  // Use themeId...
+}
+```

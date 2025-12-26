@@ -1,0 +1,517 @@
+# White-Label Applications (Next.js)
+
+Enable resellers and partners to customize your product as their own. This guide covers theme customization interfaces, asset management, and admin configuration panels.
+
+import { Callout } from 'nextra/components'
+import { UsageMatrix } from '@/components/usage-matrix'
+
+<UsageMatrix highlight="ssr-dynamic" />
+
+<Callout>
+  **Using React without a server?** See [Dynamic Themes in React](/docs/examples/react-dynamic-themes) — use the partner ID as your `themeId`.
+</Callout>
+
+## What is White-Labeling?
+
+White-labeling lets partners rebrand your application:
+
+- **Logo replacement** - Partner's logo instead of yours
+- **Color customization** - Match their brand palette
+- **Typography changes** - Their preferred fonts
+- **Custom domains** - `app.partner.com` instead of `partner.yoursaas.com`
+- **Email branding** - Emails appear from the partner
+
+## Architecture
+
+```
+Your Platform
+├── Partner A (their logo, colors, domain)
+├── Partner B (their logo, colors, domain)
+└── Partner C (their logo, colors, domain)
+
+Same codebase, different branding per partner.
+```
+
+## 1. Extended Schema for White-Labeling
+
+Include branding and asset fields:
+
+```typescript filename="lib/theme/schema.ts"
+import { createSchema, t, type InferTheme } from '@livery/core';
+
+export const schema = createSchema({
+  definition: {
+    // Brand identity
+    brand: {
+      name: t.string().describe('Partner company name'),
+      tagline: t.string().describe('Partner tagline'),
+      logoLight: t.string().describe('Logo URL for light backgrounds'),
+      logoDark: t.string().describe('Logo URL for dark backgrounds'),
+      logoMark: t.string().describe('Square logo mark/icon'),
+      favicon: t.string().describe('Favicon URL'),
+    },
+
+    // Contact & links
+    links: {
+      website: t.string().describe('Partner website URL'),
+      support: t.string().describe('Support email or URL'),
+      privacy: t.string().describe('Privacy policy URL'),
+      terms: t.string().describe('Terms of service URL'),
+    },
+
+    // Visual design
+    colors: {
+      primary: t.color().describe('Primary brand color'),
+      primaryHover: t.color(),
+      primaryLight: t.color().describe('Light variant for backgrounds'),
+      secondary: t.color(),
+      background: t.color(),
+      backgroundAlt: t.color(),
+      surface: t.color(),
+      surfaceHover: t.color(),
+      text: t.color(),
+      textMuted: t.color(),
+      textOnPrimary: t.color().describe('Text color on primary background'),
+      border: t.color(),
+      borderHover: t.color(),
+      success: t.color(),
+      warning: t.color(),
+      error: t.color(),
+    },
+
+    typography: {
+      fontFamily: {
+        heading: t.fontFamily().describe('Headings font'),
+        body: t.fontFamily().describe('Body text font'),
+        mono: t.fontFamily().describe('Code font'),
+      },
+      fontUrl: t.string().describe('Google Fonts URL to load'),
+    },
+
+    borderRadius: {
+      sm: t.dimension(),
+      md: t.dimension(),
+      lg: t.dimension(),
+      xl: t.dimension(),
+      full: t.dimension(),
+    },
+
+    // Email templates
+    email: {
+      headerColor: t.color(),
+      footerText: t.string().describe('Email footer text'),
+      senderName: t.string().describe('From name in emails'),
+    },
+  },
+});
+
+export type WhiteLabelTheme = InferTheme<typeof schema.definition>;
+```
+
+## 2. Partner Database Model
+
+```prisma filename="prisma/schema.prisma"
+model Partner {
+  id            String   @id @default(cuid())
+  slug          String   @unique  // URL-safe identifier
+  name          String
+  customDomain  String?  @unique  // Optional custom domain
+  theme         Json     // White-label theme config
+  isActive      Boolean  @default(true)
+
+  // Assets
+  assets        Asset[]
+
+  // Relationships
+  users         User[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Asset {
+  id        String   @id @default(cuid())
+  partnerId String
+  partner   Partner  @relation(fields: [partnerId], references: [id])
+  type      String   // "logo-light", "logo-dark", "favicon", etc.
+  url       String
+  filename  String
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
+}
+```
+
+## 3. Theme Service
+
+```typescript filename="lib/partner/service.ts"
+import { prisma } from '@/lib/prisma';
+import type { WhiteLabelTheme } from '@/lib/theme/schema';
+
+const DEFAULT_THEME: WhiteLabelTheme = {
+  brand: {
+    name: 'Your SaaS',
+    tagline: 'The best platform',
+    logoLight: '/logo-light.svg',
+    logoDark: '/logo-dark.svg',
+    logoMark: '/logo-mark.svg',
+    favicon: '/favicon.ico',
+  },
+  links: {
+    website: 'https://yoursaas.com',
+    support: 'support@yoursaas.com',
+    privacy: 'https://yoursaas.com/privacy',
+    terms: 'https://yoursaas.com/terms',
+  },
+  colors: {
+    primary: '#3B82F6',
+    primaryHover: '#2563EB',
+    primaryLight: '#EFF6FF',
+    secondary: '#8B5CF6',
+    background: '#FFFFFF',
+    backgroundAlt: '#F8FAFC',
+    surface: '#FFFFFF',
+    surfaceHover: '#F1F5F9',
+    text: '#0F172A',
+    textMuted: '#64748B',
+    textOnPrimary: '#FFFFFF',
+    border: '#E2E8F0',
+    borderHover: '#CBD5E1',
+    success: '#22C55E',
+    warning: '#F59E0B',
+    error: '#EF4444',
+  },
+  typography: {
+    fontFamily: {
+      heading: 'Inter, system-ui, sans-serif',
+      body: 'Inter, system-ui, sans-serif',
+      mono: 'JetBrains Mono, monospace',
+    },
+    fontUrl: '',
+  },
+  borderRadius: {
+    sm: '0.25rem',
+    md: '0.5rem',
+    lg: '0.75rem',
+    xl: '1rem',
+    full: '9999px',
+  },
+  email: {
+    headerColor: '#3B82F6',
+    footerText: '© 2024 Your SaaS. All rights reserved.',
+    senderName: 'Your SaaS',
+  },
+};
+
+export async function getPartnerByDomain(domain: string) {
+  return prisma.partner.findFirst({
+    where: {
+      OR: [
+        { customDomain: domain },
+        { slug: domain.split('.')[0] }, // subdomain match
+      ],
+      isActive: true,
+    },
+  });
+}
+
+// Just return partial data — the resolver handles merging with defaults
+export async function getPartnerTheme(partnerId: string): Promise<Partial<WhiteLabelTheme> | null> {
+  const partner = await prisma.partner.findUnique({
+    where: { id: partnerId },
+    select: { theme: true },
+  });
+
+  return partner?.theme as Partial<WhiteLabelTheme> | null;
+}
+```
+
+Then use `createResolver` — it automatically merges partial data with schema defaults:
+
+```typescript filename="lib/theme/resolver.ts"
+import { createResolver } from '@livery/core';
+import { schema } from './schema';
+import { getPartnerTheme } from './service';
+
+export const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => {
+    const theme = await getPartnerTheme(themeId);
+    return theme ?? {}; // Resolver merges with schema defaults
+  },
+});
+```
+
+## 4. Middleware for Domain Detection
+
+```typescript filename="middleware.ts"
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+// Cache domain->partner mapping (use Redis in production)
+const domainCache = new Map<string, string>();
+
+export async function middleware(request: NextRequest) {
+  const hostname = request.headers.get('host') || '';
+  const domain = hostname.replace(/:\d+$/, ''); // Remove port
+
+  // Check cache first
+  let partnerId = domainCache.get(domain);
+
+  if (!partnerId) {
+    // Fetch from database (via API to avoid direct DB in middleware)
+    try {
+      const res = await fetch(`${request.nextUrl.origin}/api/internal/partner-lookup`, {
+        method: 'POST',
+        body: JSON.stringify({ domain }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        partnerId = data.partnerId || 'default';
+        domainCache.set(domain, partnerId);
+      }
+    } catch {
+      partnerId = 'default';
+    }
+  }
+
+  const response = NextResponse.next();
+  response.headers.set('x-partner-id', partnerId || 'default');
+
+  return response;
+}
+
+export const config = {
+  matcher: ['/((?!api/internal|_next/static|_next/image|favicon.ico).*)'],
+};
+```
+
+## 5. Admin Theme Editor
+
+The key Livery integration: use `useTheme()` to get current values, let partners edit them, and save to your API.
+
+```tsx filename="app/admin/branding/page.tsx"
+'use client';
+
+import { useState } from 'react';
+import { useTheme } from '@/lib/livery';
+import type { WhiteLabelTheme } from '@/lib/theme/schema';
+
+type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+export default function BrandingEditor() {
+  // Get current theme from Livery
+  const { theme: currentTheme } = useTheme();
+  const [theme, setTheme] = useState<WhiteLabelTheme>(currentTheme);
+  const [state, setState] = useState<SaveState>('idle');
+
+  // Live preview: apply CSS variables as user edits
+  function updateColor(key: string, value: string) {
+    setTheme(prev => ({
+      ...prev,
+      colors: { ...prev.colors, [key]: value },
+    }));
+    document.documentElement.style.setProperty(`--colors-${key}`, value);
+    if (state === 'saved') setState('idle');
+  }
+
+  async function handleSave() {
+    setState('saving');
+    try {
+      await fetch('/api/partner/theme', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(theme),
+      });
+      setState('saved');
+    } catch {
+      setState('error');
+    }
+  }
+
+  // Your form UI here — color pickers, text inputs, logo uploads, etc.
+  // The important part is updating `theme` state and calling handleSave()
+
+  return (
+    <form onSubmit={e => { e.preventDefault(); handleSave(); }}>
+      {/* Brand section */}
+      <input
+        value={theme.brand.name}
+        onChange={e => setTheme(prev => ({
+          ...prev,
+          brand: { ...prev.brand, name: e.target.value },
+        }))}
+      />
+
+      {/* Colors section */}
+      <input
+        type="color"
+        value={theme.colors.primary}
+        onChange={e => updateColor('primary', e.target.value)}
+      />
+
+      <button type="submit" disabled={state === 'saving'}>
+        {state === 'saving' ? 'Saving...' : state === 'saved' ? 'Saved!' : 'Save'}
+      </button>
+    </form>
+  );
+}
+```
+
+The form UI (tabs, sections, file uploads) is standard React — build it however you like. The Livery-specific parts are just `useTheme()` and updating CSS variables for live preview.
+
+## 6. Asset Upload API
+
+```typescript filename="app/api/partner/assets/route.ts"
+import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import { prisma } from '@/lib/prisma';
+import { uploadToS3 } from '@/lib/storage'; // Your storage implementation
+
+export async function POST(request: NextRequest) {
+  const headersList = await headers();
+  const partnerId = headersList.get('x-partner-id');
+
+  if (!partnerId || partnerId === 'default') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const formData = await request.formData();
+  const file = formData.get('file') as File;
+
+  if (!file) {
+    return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+  }
+
+  // Upload to S3 or your storage
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const url = await uploadToS3({
+    buffer,
+    filename: `partners/${partnerId}/${Date.now()}-${file.name}`,
+    contentType: file.type,
+  });
+
+  // Save asset record
+  await prisma.asset.create({
+    data: {
+      partnerId,
+      type: 'custom',
+      url,
+      filename: file.name,
+      mimeType: file.type,
+      size: file.size,
+    },
+  });
+
+  return NextResponse.json({ url });
+}
+```
+
+## 7. Email Branding
+
+Use theme values in email templates:
+
+```typescript filename="lib/email/send.ts"
+import { Resend } from 'resend';
+import type { WhiteLabelTheme } from '@/lib/theme/schema';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function sendEmail({
+  to,
+  subject,
+  html,
+  theme,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+  theme: WhiteLabelTheme;
+}) {
+  const brandedHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body { font-family: ${theme.typography.fontFamily.body}; }
+          .header { background-color: ${theme.email.headerColor}; padding: 20px; }
+          .logo { max-height: 40px; }
+          .content { padding: 20px; background-color: ${theme.colors.background}; }
+          .button {
+            background-color: ${theme.colors.primary};
+            color: ${theme.colors.textOnPrimary};
+            padding: 12px 24px;
+            border-radius: ${theme.borderRadius.md};
+            text-decoration: none;
+            display: inline-block;
+          }
+          .footer {
+            padding: 20px;
+            color: ${theme.colors.textMuted};
+            font-size: 12px;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img src="${theme.brand.logoLight}" alt="${theme.brand.name}" class="logo" />
+        </div>
+        <div class="content">
+          ${html}
+        </div>
+        <div class="footer">
+          ${theme.email.footerText}
+        </div>
+      </body>
+    </html>
+  `;
+
+  await resend.emails.send({
+    from: `${theme.email.senderName} <noreply@${process.env.EMAIL_DOMAIN}>`,
+    to,
+    subject,
+    html: brandedHtml,
+  });
+}
+```
+
+## 8. Custom Domain Setup
+
+### DNS Configuration
+
+Partners need to add a CNAME record:
+```
+app.partner.com -> custom.yoursaas.com
+```
+
+### SSL Certificate
+
+Use a service like Cloudflare or Let's Encrypt for automatic SSL:
+
+```typescript filename="lib/domains/verify.ts"
+export async function verifyCustomDomain(domain: string): Promise<boolean> {
+  try {
+    // Check DNS resolution
+    const dns = await fetch(`https://dns.google/resolve?name=${domain}&type=CNAME`);
+    const data = await dns.json();
+
+    // Verify it points to your service
+    return data.Answer?.some(
+      (record: { data: string }) => record.data.includes('yoursaas.com')
+    ) ?? false;
+  } catch {
+    return false;
+  }
+}
+```
+
+## Key Takeaways
+
+1. **Comprehensive schema** - Include all customizable aspects in your theme
+2. **Asset management** - Allow logo and image uploads with proper storage
+3. **Live preview** - Let partners see changes before saving
+4. **Email branding** - Extend theming to all customer touchpoints
+5. **Custom domains** - Support vanity URLs for full white-label experience
+6. **Validation** - Ensure theme values are valid (colors, URLs, etc.)

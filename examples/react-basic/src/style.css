@@ -1,0 +1,210 @@
+/**
+ * Styles using CSS variables from Livery.
+ * The LiveryProvider injects these variables automatically.
+ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--typography-font-family, system-ui, sans-serif);
+  font-size: var(--typography-font-size, 16px);
+  line-height: var(--typography-line-height, 1.5);
+  color: var(--colors-text, #1e293b);
+  background: var(--colors-background, #ffffff);
+  min-height: 100vh;
+}
+
+.app-wrapper {
+  min-height: 100vh;
+  padding: var(--spacing-lg, 24px);
+}
+
+.app {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md, 16px);
+  margin-bottom: var(--spacing-lg, 24px);
+  background: var(--colors-surface, #f8fafc);
+  border-radius: var(--borders-radius, 8px);
+}
+
+.header h1 {
+  color: var(--brand-primary, #3b82f6);
+  font-size: 1.5rem;
+}
+
+.tenant-badge {
+  background: var(--brand-primary, #3b82f6);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+}
+
+/* Cards */
+.card {
+  background: var(--colors-surface, #f8fafc);
+  border-radius: var(--borders-radius, 8px);
+  padding: var(--spacing-lg, 24px);
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+.card h2 {
+  color: var(--colors-text, #1e293b);
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+.card p {
+  color: var(--colors-text-muted, #64748b);
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+/* Color swatches */
+.color-swatch {
+  display: flex;
+  gap: var(--spacing-md, 16px);
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+.swatch {
+  flex: 1;
+  padding: var(--spacing-md, 16px);
+  border-radius: var(--borders-radius, 8px);
+  color: white;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.swatch span {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.swatch code {
+  font-family: monospace;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+/* Details/summary */
+details {
+  margin-top: var(--spacing-md, 16px);
+}
+
+summary {
+  cursor: pointer;
+  color: var(--brand-primary, #3b82f6);
+  font-weight: 500;
+}
+
+details pre {
+  margin-top: var(--spacing-sm, 8px);
+  padding: var(--spacing-md, 16px);
+  background: var(--colors-background, #ffffff);
+  border-radius: var(--borders-radius, 8px);
+  overflow-x: auto;
+  font-size: 0.75rem;
+}
+
+/* Demo button */
+.demo-button {
+  background: var(--brand-primary, #3b82f6);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+  border-radius: var(--borders-radius, 8px);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.demo-button:hover {
+  opacity: 0.9;
+}
+
+/* Tenant selector */
+.tenant-selector {
+  max-width: 800px;
+  margin: 0 auto var(--spacing-lg, 24px);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 16px);
+}
+
+.tenant-selector label {
+  font-weight: 500;
+  color: var(--colors-text, #1e293b);
+}
+
+.tenant-buttons {
+  display: flex;
+  gap: var(--spacing-sm, 8px);
+}
+
+.tenant-button {
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+  border: 2px solid var(--colors-text-muted, #64748b);
+  background: transparent;
+  border-radius: var(--borders-radius, 8px);
+  cursor: pointer;
+  font-weight: 500;
+  text-transform: capitalize;
+  transition: all 0.2s;
+}
+
+.tenant-button:hover {
+  border-color: var(--brand-primary, #3b82f6);
+  color: var(--brand-primary, #3b82f6);
+}
+
+.tenant-button.active {
+  background: var(--brand-primary, #3b82f6);
+  border-color: var(--brand-primary, #3b82f6);
+  color: white;
+}
+
+/* Loading state */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--colors-text-muted, #64748b);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--colors-surface, #f8fafc);
+  border-top-color: var(--brand-primary, #3b82f6);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--spacing-md, 16px);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Main content */
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 16px);
+}

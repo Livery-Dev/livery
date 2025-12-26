@@ -1,0 +1,238 @@
+# Prisma
+
+Store and fetch themes using [Prisma ORM](https://www.prisma.io/) with full type safety.
+
+## Schema Definition
+
+Add a Theme model to your Prisma schema:
+
+```prisma filename="prisma/schema.prisma"
+model Theme {
+  id        String   @id @default(cuid())
+  themeId  String   @unique @map("theme_id")
+  name      String
+  tokens    Json
+  version   Int      @default(1)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("themes")
+}
+```
+
+Run the migration:
+
+```bash
+npx prisma migrate dev --name add-themes
+```
+
+## Resolver Setup
+
+Create a resolver that fetches themes from Prisma:
+
+```typescript filename="lib/resolver.ts"
+import { createResolver, type InferTheme } from '@livery/core';
+import { prisma } from './db';
+import { schema } from './schema';
+
+// Type-safe default theme
+type Theme = InferTheme<typeof schema.definition>;
+
+const defaultTheme: Theme = {
+  colors: {
+    primary: '#14B8A6',
+    background: '#FFFFFF',
+    text: '#0F172A',
+  },
+  // ... other tokens
+};
+
+export const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => {
+    const theme = await prisma.theme.findUnique({
+      where: { themeId },
+    });
+
+    if (!theme || !theme.isActive) {
+      return {}; // Resolver merges with schema defaults
+    }
+
+    return theme.tokens as Partial<Theme>;
+  },
+  cache: {
+    ttl: 5 * 60 * 1000, // 5 minutes
+  },
+});
+```
+
+## Validating Database Tokens
+
+Use Livery's built-in validation to ensure tokens from the database match your schema:
+
+```typescript filename="lib/resolver.ts"
+import { createResolver, validate } from '@livery/core';
+import { prisma } from './db';
+import { schema, defaultTheme } from './schema';
+
+export const resolver = createResolver({
+  schema,
+  fetcher: async ({ themeId }) => {
+    const theme = await prisma.theme.findUnique({
+      where: { themeId },
+    });
+
+    if (!theme || !theme.isActive) {
+      return {};
+    }
+
+    // Validate tokens from database against Livery schema
+    const result = validate({ schema, data: theme.tokens });
+    if (!result.success) {
+      console.error('Invalid theme tokens:', result.errors);
+      return {};
+    }
+
+    return result.data;
+  },
+  cache: {
+    ttl: 5 * 60 * 1000,
+  },
+});
+```
+
+No need for a separate Zod schema — Livery's `validate()` function provides runtime validation against the same schema you use for type inference.
+
+## CRUD Operations
+
+### Create Theme
+
+```typescript filename="app/api/themes/route.ts"
+import { NextResponse } from 'next/server';
+import { validate } from '@livery/core';
+import { prisma } from '@/lib/db';
+import { schema } from '@/lib/schema';
+
+export async function POST(request: Request) {
+  const body = await request.json();
+
+  // Validate tokens against Livery schema
+  const result = validate({ schema, data: body.tokens });
+  if (!result.success) {
+    return NextResponse.json({ errors: result.errors }, { status: 400 });
+  }
+
+  const theme = await prisma.theme.create({
+    data: {
+      themeId: body.themeId,
+      name: body.name,
+      tokens: result.data,
+    },
+  });
+
+  return NextResponse.json(theme);
+}
+```
+
+### Update Theme
+
+```typescript
+export async function PUT(request: Request) {
+  const body = await request.json();
+
+  // Validate tokens against Livery schema
+  const result = validate({ schema, data: body.tokens });
+  if (!result.success) {
+    return NextResponse.json({ errors: result.errors }, { status: 400 });
+  }
+
+  const theme = await prisma.theme.update({
+    where: { themeId: body.themeId },
+    data: {
+      name: body.name,
+      tokens: result.data,
+      version: { increment: 1 },
+    },
+  });
+
+  return NextResponse.json(theme);
+}
+```
+
+## Cache Invalidation
+
+When themes are updated, invalidate the Livery cache:
+
+```typescript
+import { resolver } from '@/lib/resolver';
+
+// After updating theme in database
+await prisma.theme.update({ ... });
+
+// Invalidate cache for this theme
+resolver.invalidate({ themeId });
+```
+
+## Multi-Tenant Pattern
+
+For SaaS applications, use Livery's middleware to detect the theme ID from the request:
+
+```typescript filename="middleware.ts"
+import { createLiveryMiddleware } from '@livery/next/middleware';
+
+export const middleware = createLiveryMiddleware({
+  strategy: 'subdomain',
+  subdomain: {
+    baseDomain: 'myapp.io',
+    ignore: ['www', 'app'],
+  },
+  fallback: '/select-workspace',
+});
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+};
+```
+
+Then in your layout, resolve the theme server-side:
+
+```tsx filename="app/layout.tsx"
+import { headers } from 'next/headers';
+import { getThemeFromHeaders } from '@livery/next';
+import { toCssString } from '@livery/core';
+import { DynamicThemeProvider, resolver, schema } from '@/lib/livery';
+
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const headersList = await headers();
+  const themeId = getThemeFromHeaders({ headers: headersList }) ?? 'default';
+
+  // Resolve theme on server
+  const theme = await resolver.resolve({ themeId });
+  const css = toCssString({ schema, theme });
+
+  return (
+    <html>
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: `:root { ${css} }` }} />
+      </head>
+      <body>
+        <DynamicThemeProvider initialThemeId={themeId} resolver={resolver} initialTheme={theme}>
+          {children}
+        </DynamicThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+## Performance Tips
+
+1. **Index the themeId column** — Already done with `@unique`
+2. **Use connection pooling** — PgBouncer or Prisma Accelerate
+3. **Cache aggressively** — Themes don't change often
+4. **Preload common themes** — Warm cache on server start
