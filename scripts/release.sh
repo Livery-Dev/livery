@@ -152,7 +152,7 @@ echo -e "${GREEN}✓ Working directory is clean${NC}"
 
 echo ""
 echo -e "${BLUE}Step 2: Running tests...${NC}"
-pnpm test
+pnpm test run
 echo -e "${GREEN}✓ All tests passed${NC}"
 
 echo ""
