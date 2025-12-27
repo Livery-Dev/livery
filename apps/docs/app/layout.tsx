@@ -3,8 +3,10 @@ import { Inter, JetBrains_Mono, Montserrat, Libre_Baskerville } from 'next/font/
 import { BuyMeCoffee } from '../components/buy-me-coffee';
 import { Providers } from '../components/providers';
 import { generateAllThemesCss } from '../lib/livery-server';
-import './globals.css';
 import { LiveryScript } from '@livery/react/server';
+import { Analytics } from '@vercel/analytics/next';
+
+import './globals.css';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -106,6 +108,7 @@ export default function RootLayout({
       >
         <Providers>{children}</Providers>
         <BuyMeCoffee />
+        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   );
